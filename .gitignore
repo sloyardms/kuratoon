@@ -1,0 +1,31 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Env
+.env
+deploy/.env
+
+# Backend
+backend/**/target/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+
+# Generated fixtures (manifests and HTML stay committed)
+fixtures/import/**/*.jpg
+fixtures/import/**/*.jpeg
+fixtures/import/**/*.png
+fixtures/import/**/*.webp
+fixtures/large/
+
+# Local runtime data
+data/
