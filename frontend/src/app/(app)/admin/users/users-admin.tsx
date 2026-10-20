@@ -228,6 +228,7 @@ export function UsersAdmin() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
+                            disabled={isSelf && user.enabled}
                             onClick={() =>
                               patch(
                                 user,

@@ -2,7 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 /** Roadmap phase 2: first-run setup → login → logout. */
 
-const ADMIN = { username: "owner", email: "owner@example.test", password: "e2e-owner-password" };
+const ADMIN = {
+  username: "owner",
+  email: "owner@example.test",
+  password: "e2e-owner-password",
+};
 
 async function completeSetupIfRequired(page: Page) {
   await page.goto("/");
@@ -10,7 +14,9 @@ async function completeSetupIfRequired(page: Page) {
   await page.waitForURL(/\/(setup|login)/);
   if (!page.url().includes("/setup")) return;
 
-  await expect(page.getByRole("heading", { name: "Welcome to Kuratoon" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Welcome to Kuratoon" }),
+  ).toBeVisible();
   await page.getByLabel("Username").fill(ADMIN.username);
   await page.getByLabel("Email (optional)").fill(ADMIN.email);
   await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
@@ -32,12 +38,16 @@ test("first-run setup, login and logout", async ({ page, context }) => {
   await page.getByRole("button", { name: "Log in" }).click();
   // (Next.js also renders an empty role="alert" route announcer, so match the text.)
   await expect(
-    page.getByRole("alert").filter({ hasText: "Invalid username or password." }),
+    page
+      .getByRole("alert")
+      .filter({ hasText: "Invalid username or password." }),
   ).toBeVisible();
 
   await page.getByLabel("Password").fill(ADMIN.password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("heading", { name: "Your library" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your library" }),
+  ).toBeVisible();
 
   // Both auth cookies are httpOnly (never readable by page scripts).
   const cookies = await context.cookies();
@@ -59,7 +69,9 @@ test("first-run setup, login and logout", async ({ page, context }) => {
   await page.getByRole("button", { name: "User menu" }).click();
   await page.getByRole("menuitem", { name: "Log out", exact: true }).click();
   await page.waitForURL(/\/login$/);
-  expect((await context.cookies()).filter((c) => c.name.startsWith("kuratoon_"))).toEqual([]);
+  expect(
+    (await context.cookies()).filter((c) => c.name.startsWith("kuratoon_")),
+  ).toEqual([]);
 
   await page.goto("/admin/users");
   await expect(page).toHaveURL(/\/login\?next=%2Fadmin%2Fusers$/);

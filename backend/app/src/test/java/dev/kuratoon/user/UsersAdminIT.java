@@ -117,21 +117,26 @@ class UsersAdminIT extends ApiTestBase {
     }
 
     @Test
-    void lastEnabledAdminCannotBeDisabled() {
-        // The default admin is the only admin: disabling itself would leave none.
+    void adminCannotDisableThemselvesEvenWithAnotherAdmin() {
+        data.aUser("other-admin", Role.ADMIN);
+
         assertThat(patch(BASE + "/" + admin.getId(), """
                 {"enabled": false}
-                """)).hasStatus(409).bodyJson().extractingPath("$.detail").isEqualTo("The last admin cannot be disabled.");
+                """)).hasStatus(409).bodyJson().extractingPath("$.detail").isEqualTo("You cannot disable yourself.");
+        assertThat(get(BASE + "/{id}", admin.getId())).bodyJson().extractingPath("$.enabled").isEqualTo(true);
+        assertThat(auditCount("USER_UPDATED")).isZero();
+    }
 
+    @Test
+    void anotherAdminCanBeDisabledAndReEnabled() {
         AppUser other = data.aUser("other-admin", Role.ADMIN);
+
         assertThat(patch(BASE + "/" + other.getId(), """
                 {"enabled": false}
-                """)).hasStatusOk();
-        // "other" is disabled now, so the default admin is again the last enabled one.
-        assertThat(patch(BASE + "/" + admin.getId(), """
-                {"enabled": false}
-                """)).hasStatus(409);
-        assertThat(get(BASE + "/{id}", admin.getId())).bodyJson().extractingPath("$.enabled").isEqualTo(true);
+                """)).hasStatusOk().bodyJson().extractingPath("$.enabled").isEqualTo(false);
+        assertThat(patch(BASE + "/" + other.getId(), """
+                {"enabled": true}
+                """)).hasStatusOk().bodyJson().extractingPath("$.enabled").isEqualTo(true);
     }
 
     @Test

@@ -22,8 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Users page actions (docs/spec/04-auth-users.md "Users page"). An admin cannot delete or demote
- * themselves, and the last enabled admin cannot be removed, disabled or demoted. Admin-affecting
+ * Users page actions (docs/spec/04-auth-users.md "Users page"). An admin cannot delete, demote or
+ * disable themselves, and the last enabled admin cannot be removed, disabled or demoted. Admin-affecting
  * changes run under the shared admin lock so two admins cannot race past that rule.
  */
 @Service
@@ -90,8 +90,13 @@ public class UserAdminService {
             endSessions(user); // the role claim of existing access tokens is now stale
         }
         if (request.enabled() != null && request.enabled() != user.isEnabled()) {
-            if (!request.enabled() && user.getRole() == Role.ADMIN) {
-                requireAnotherEnabledAdmin(user, "disabled");
+            if (!request.enabled()) {
+                if (id.equals(self)) {
+                    throw new ConflictException("You cannot disable yourself.");
+                }
+                if (user.getRole() == Role.ADMIN) {
+                    requireAnotherEnabledAdmin(user, "disabled");
+                }
             }
             changes.put("enabled", request.enabled());
             user.setEnabled(request.enabled());
