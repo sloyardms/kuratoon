@@ -1,24 +1,24 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const port = 3000;
-const baseURL = `http://localhost:${port}`;
+/**
+ * End-to-end tests run against the full stack (nginx + frontend + backend + Postgres), e.g.
+ * `docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --wait`, then
+ * `BASE_URL=http://localhost:8080 npm run test:e2e`. BASE_URL must equal the stack's APP_BASE_URL
+ * (the backend's Origin check). Use a fresh database: the first test runs first-run setup.
+ */
+const baseURL = process.env.BASE_URL ?? "http://localhost:8080";
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  // The flows share one database (setup happens once), so they run in order.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
-    command: "npm run build && npm run start",
-    env: { PORT: String(port) },
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-  },
 });
