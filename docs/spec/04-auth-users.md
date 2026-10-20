@@ -83,6 +83,14 @@ with filters (newest first, offset pagination).
 
 ## Transport
 
-The app assumes HTTPS is terminated by the installer's reverse proxy. Spring uses forwarded
-headers (`server.forward-headers-strategy=framework`) only from `TRUSTED_PROXIES`. Security headers
-(CSP, X-Content-Type-Options, Referrer-Policy, frame-ancestors none) are set by the internal nginx.
+The app assumes HTTPS is terminated by the installer's reverse proxy. Forwarded headers are
+handled as in `08-deployment.md`:
+
+- `TRUSTED_PROXIES` is consumed by the internal nginx only (`set_real_ip_from`). nginx overwrites
+  `X-Forwarded-For` / `X-Real-IP` with the resolved client address before proxying.
+- The backend uses Tomcat's native forwarded-header handling (`server.forward-headers-strategy=native`)
+  and trusts those headers only from `INTERNAL_SUBNET` (the compose network), never from arbitrary
+  private ranges. Per-IP rate limits therefore see the real client address.
+
+Security headers (CSP, X-Content-Type-Options, Referrer-Policy, frame-ancestors none) are set by the
+internal nginx.

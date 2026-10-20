@@ -73,6 +73,10 @@ Specs: `02-ingestion.md`, `06-images.md` (generation part).
   conflicting chapter → NEEDS_ATTENTION, corrupt image → NEEDS_ATTENTION, restore from sidecar
   after DB wipe, crash during PROCESSING leaves no partial library folder.
 
+**Notes**
+- Move `media.chapter_count` / `latest_chapter_added_at` maintenance out of the `Chapter`
+  constructor into an explicit service method, with tests for add, delete and replace.
+
 ## Phase 4 — Plugins and fetching
 
 Specs: `03-plugins-fetching.md`.

@@ -73,7 +73,8 @@ locked: [ "title", "type" ]
 cover: { file: cover.jpg, crop: { x: 0.1, y: 0, w: 0.6, h: 1 } }
 created_at: 2026-10-19T00:00:00Z
 chapters:
-  - { number: 0, title: Prologue, folder: "0", pages: [ { f: 0001.jpg, w: 800, h: 12000 } ] }
+  - { number: 0, title: Prologue, folder: "0", created_at: 2026-10-19T00:00:00Z,
+      pages: [ { f: 0001.jpg, w: 800, h: 12000 } ] }
 relations:
   - { type: SEQUEL, media_id: 0192f1c4-... }
 moments:
@@ -81,6 +82,10 @@ moments:
 ```
 
 The snapshot never contains per-user data (progress, favorites, ratings, collections).
+
+Each chapter entry includes its `created_at`. RESTORE uses it as `chapter.created_at`, so restored
+chapters keep their original "added" dates (and the media's `latest_chapter_added_at` is derived
+from them) instead of the restore time.
 
 Write atomically: write to `kuratoon.yml.tmp`, fsync, rename.
 
@@ -90,6 +95,7 @@ Write atomically: write to `kuratoon.yml.tmp`, fsync, rename.
 QUEUED → RESOLVING → FETCHING_METADATA → PROCESSING → DONE
                     ↘ NEEDS_ATTENTION (admin action required)
                     ↘ FAILED (unexpected error; retryable)
+NEEDS_ATTENTION / FAILED → DISMISSED (admin action; finished)
 ```
 
 - `QUEUED`: folder detected and stable.
@@ -98,6 +104,9 @@ QUEUED → RESOLVING → FETCHING_METADATA → PROCESSING → DONE
 - `PROCESSING`: validate images, copy files, write DB, generate thumbnails, write sidecar.
 - `NEEDS_ATTENTION`: a decision is needed. `message` explains it; `detail` holds the data.
 - `FAILED`: technical failure. Retry button re-runs from the start.
+- `DISMISSED`: the admin dismissed the job. It is finished (`finished_at` set). Dismiss renames
+  the source folder in `/import` to `.dismissed-<name>`, so the poller (which ignores folders
+  starting with `.`) does not pick it up again.
 
 The Imports admin page lists jobs with status, message, the parsed chapter table
 (folder → number → title → page count → warnings) and actions: Retry, Fill metadata manually,
