@@ -129,8 +129,13 @@
   - Full stack: `docker compose up --build --wait` gets all five services healthy. Through nginx
     on 8080, `/` returns 200 with the placeholder, `/api/v1/health` returns `{"status":"UP"}`,
     `/actuator/health` returns 404, and the security headers are present.
-- **CI has not run yet**: nothing has been pushed to GitHub. The workflow is unverified until the
-  first push.
+- CI (GitHub Actions, `sloyardms/kuratoon`): every job is green.
+  - Frontend and fixtures passed on the first run.
+  - The first run's backend and docker failures were fixed in two commits:
+    - `mvnw` had been committed without its executable bit (the repo was created on Windows).
+    - The JDK build image lacked `unzip`, so the Maven wrapper fell back to the `.tar.gz`
+      distribution and failed the pinned `.zip` SHA-256.
+  - Run 39379150557 then passed docker and backend.
 
 ## Known issues and shortcuts
 - `example-plugin` contains no code yet (phase 4).
@@ -143,8 +148,12 @@
   private-range regex rather than `TRUSTED_PROXIES`. That is fine while only nginx talks to the
   backend; revisit when the auth rate limits need real client IPs (phase 2).
 
+- Windows checkouts: the system Git config here sets `core.autocrlf=true`, and `git archive`
+  applies it despite `.gitattributes`. Committed files are LF; to reproduce CI's Linux checkout
+  locally, use `git -c core.autocrlf=false archive`. Executable bits must be set with
+  `git update-index --chmod=+x`, because `core.filemode=false` on Windows.
+
 ## Open questions for the owner
-- Push to `github.com/sloyardms/kuratoon` now, so CI runs for the first time?
 - nginx running as uid 101 and relying on world-readable library files: acceptable, or should
   nginx run as `PUID:PGID` (needs a custom `nginx.conf` with writable temp/pid paths)?
 
