@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+coverage
+playwright-report
+test-results
+blob-report
+e2e
+*.tsbuildinfo
+next-env.d.ts
+Dockerfile
+CLAUDE.md
+AGENTS.md
+VERSIONS-phase0.md
