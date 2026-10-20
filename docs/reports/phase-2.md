@@ -234,9 +234,30 @@
   check), and run the backend locally or set `BACKEND_INTERNAL_URL`.
 
 ## Open questions for the owner
-- Should an admin be allowed to disable themselves (when another admin remains)? The spec is
-  silent; it is currently allowed.
-- Should old refresh and reset tokens get a purge job (phase 9 with the `read_event` purge)?
+- None. Both questions were answered in review (see below).
+
+## Post-review changes
+- **Self-disable**: admins cannot disable themselves, the same rule as self-delete and
+  self-demote. The backend returns 409 "You cannot disable yourself.", and the Users page greys
+  out "Disable" on your own row. `UsersAdminIT` covers it, plus disabling and re-enabling another
+  admin. Spec 04 "Users page" was updated.
+- **Docs, owner-authorized**:
+  - 04 rate limits now state the failed-logins-only per-username rule and the nginx exclusion of
+    `GET /api/v1/auth/status`;
+  - 08 lists `BACKEND_INTERNAL_URL` as internal compose wiring;
+  - `.env.example` says `SMTP_TLS=true` is STARTTLS (587) and that implicit TLS (465) is not
+    supported;
+  - roadmap phase 9 adds purge jobs for expired/revoked refresh tokens and used/expired reset
+    tokens.
+- **CI fixes**: the first CI run of phase 2 failed in the docker job's smoke test, so Playwright
+  was skipped:
+  - `/` now redirects to `/setup` on a fresh install;
+  - `/actuator/*` reaches the frontend, which also redirects.
+
+  The smoke test now follows redirects and asserts that the backend health JSON is never served on
+  `/actuator` through nginx. `e2e/auth.spec.ts` was also formatted for the new `format:check` step.
+- **CI result**: run 39403932804 is green on all jobs: backend, frontend, fixtures, and docker
+  (smoke test, permission model, Playwright first-run setup → login → logout).
 
 ## How to verify manually
 1. `cd backend && ./mvnw verify`
