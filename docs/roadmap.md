@@ -144,8 +144,9 @@ Specs: `05-reading-status.md`, `07-frontend.md` (reader).
 
 ## Phase 9 — Hardening and release
 
-- Performance pass (query plans for browse/home with ~5k media fixtures, N+1 checks), read_event
-  purge job, error pages, accessibility pass, README install guide with reverse proxy examples,
+- Performance pass (query plans for browse/home with ~5k media fixtures, N+1 checks), purge
+  jobs (read_event older than 90 days; expired/revoked refresh tokens; used/expired password
+  reset tokens), error pages, accessibility pass, README install guide with reverse proxy examples,
   `.env.example` review, fixture generator for a large library.
 
 **Done when**

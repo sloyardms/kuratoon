@@ -36,8 +36,15 @@
 ## Passwords
 
 - Argon2id. Minimum length 10. No composition rules.
-- Rate limiting on `/api/v1/auth/*` (login, register, reset): per IP and per username
-  (e.g. 5/min, burst 10), enforced in the backend; nginx adds a coarse per-IP limit.
+- Rate limiting on `/api/v1/auth/*` (login, register, setup, reset), enforced in the backend:
+  - **Per IP**: every attempt counts (burst 10, refill 5/min).
+  - **Per username**: only *failed* logins count (burst 10, refill 5/min). While a username's
+    bucket is empty, attempts for it are refused (429) before password verification from IPs that
+    failed for that username in the last 15 min; IPs without recent failures are still verified,
+    so a flood of bad logins from elsewhere cannot lock the real user out.
+  - nginx adds a coarse per-IP limit (`RATE_LIMIT_AUTH_*`) on `/api/v1/auth/*`, except the
+    read-only `GET /api/v1/auth/status`, which every auth page requests.
+  - Limited responses are 429 with `Retry-After`.
 - Login and reset responses never reveal whether a username/email exists (anti-enumeration).
 
 ## First run
@@ -65,7 +72,8 @@
 
 List with search and offset pagination. Actions: create user, edit role, enable/disable,
 reset password (admin sets a new one), revoke sessions, delete (cascades all personal data).
-An admin cannot delete or demote themselves, and the last admin cannot be removed or disabled.
+An admin cannot delete, demote or disable themselves, and the last admin cannot be removed,
+demoted or disabled.
 
 ## Settings page (admin)
 

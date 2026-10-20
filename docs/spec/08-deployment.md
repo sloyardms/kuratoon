@@ -91,6 +91,12 @@ templates directory).
 | `RATE_LIMIT_AUTH_RPM` / `_BURST` | 10 / 10 | |
 | `LOG_LEVEL` | INFO | |
 
+Internal wiring (set by compose, not in `.env.example`):
+
+| Variable | Value in compose | Purpose |
+|---|---|---|
+| `BACKEND_INTERNAL_URL` | http://backend:8080 | frontend → backend for `proxy.ts` refresh and server rendering; only needed when running the frontend outside compose |
+
 Startup fails fast with a clear message if a required variable is missing or invalid.
 
 ## Images and builds
