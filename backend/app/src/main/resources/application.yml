@@ -17,6 +17,8 @@ spring:
       ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
+      # Lazy associations (e.g. each character's parody) load in batches, not one query per row.
+      hibernate.default_batch_fetch_size: 64
   flyway:
     locations: classpath:db/migration
   mvc:
