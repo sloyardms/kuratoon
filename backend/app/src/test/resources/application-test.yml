@@ -1,0 +1,5 @@
+# Required settings for tests. Values are test-only and never used outside the test suite.
+kuratoon:
+  app-base-url: http://localhost:8080
+  jwt-secret: test-jwt-secret-that-is-at-least-32-bytes-long
+  image-signing-secret: test-image-signing-secret

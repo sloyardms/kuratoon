@@ -1,0 +1,60 @@
+# Environment variables are documented in deploy/.env.example (docs/spec/08-deployment.md).
+spring:
+  application:
+    name: kuratoon
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    # Compose sets SPRING_DATASOURCE_* explicitly; these defaults target the dev compose database.
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:kuratoon}
+    username: ${POSTGRES_USER:kuratoon}
+    password: ${POSTGRES_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 8080
+  shutdown: graceful
+  forward-headers-strategy: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+      discovery:
+        enabled: false
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: false
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    dev.kuratoon: ${LOG_LEVEL:INFO}
+
+kuratoon:
+  app-base-url: ${APP_BASE_URL:}
+  jwt-secret: ${JWT_SECRET:}
+  image-access: ${IMAGE_ACCESS:signed}
+  image-signing-secret: ${IMAGE_SIGNING_SECRET:}
+  default-language: ${DEFAULT_LANGUAGE:en}
+  solver:
+    endpoint: ${SOLVER_URL:http://byparr:8191}
+    timeout: ${SOLVER_TIMEOUT_MS:60000}ms
+  import-polling:
+    poll-interval: ${IMPORT_POLL_SECONDS:30}s
+    stable-after: ${IMPORT_STABLE_SECONDS:60}s
