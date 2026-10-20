@@ -116,6 +116,13 @@ jobs:
           test "$(curl -fsS http://localhost:8080/api/v1/health)" = '{"status":"UP"}'
           # Actuator is internal only.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/actuator/health)" = 404
+      - name: Permission model (backend umask 027, nginx reads via PGID)
+        run: |
+          compose="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
+          $compose exec -T backend sh -c 'grep -q "Umask:.*0027" /proc/1/status'
+          $compose exec -T backend sh -c 'umask 027 && mkdir -p /library/.ci && echo ok > /library/.ci/probe'
+          test "$(stat -c '%a' deploy/data/library/.ci/probe)" = 640
+          test "$($compose exec -T nginx cat /library/.ci/probe)" = ok
       - name: Logs
         if: failure()
         run: docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs --no-color

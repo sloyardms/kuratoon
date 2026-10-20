@@ -47,7 +47,9 @@ server {
     proxy_set_header Connection "";
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    # Overwrite, never append: $remote_addr is already the real client (real_ip module, trusted
+    # proxies only), so anything a client sends in X-Forwarded-For is dropped here.
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $kuratoon_forwarded_proto;
     proxy_set_header X-Forwarded-Host $host;
 

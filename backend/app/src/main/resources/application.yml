@@ -27,6 +27,11 @@ server:
   port: 8080
   shutdown: graceful
   forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      # Trust X-Forwarded-* only from the compose network (nginx), never from any private IP.
+      # Empty (local dev without nginx) trusts nobody.
+      internal-proxies: ${INTERNAL_SUBNET:}
 
 management:
   endpoints:

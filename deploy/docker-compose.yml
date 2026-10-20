@@ -57,7 +57,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       IMAGE_ACCESS: ${IMAGE_ACCESS:-signed}
       IMAGE_SIGNING_SECRET: ${IMAGE_SIGNING_SECRET:-}
-      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      # Forwarded headers are trusted only from the compose network (nginx).
+      INTERNAL_SUBNET: ${INTERNAL_SUBNET:-172.30.71.0/24}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
@@ -107,10 +108,11 @@ services:
     networks: [internal]
 
   nginx:
-    # Non-root nginx (uid 101). It only reads /library and /data, which the backend writes with
-    # world-readable permissions.
+    # Non-root nginx (uid 101). It reads /library and /data (backend files are 0640, dirs 0750)
+    # through the supplementary group PGID.
     image: nginxinc/nginx-unprivileged:1.30.6-alpine
     restart: unless-stopped
+    group_add: ["${PGID:-1000}"]
     environment:
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       IMAGE_ACCESS: ${IMAGE_ACCESS:-signed}
@@ -135,4 +137,7 @@ services:
     networks: [internal]
 
 networks:
-  internal: {}
+  internal:
+    ipam:
+      config:
+        - subnet: ${INTERNAL_SUBNET:-172.30.71.0/24}

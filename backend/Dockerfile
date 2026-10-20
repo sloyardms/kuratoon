@@ -43,4 +43,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 \
   CMD curl -fsS http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "org.springframework.boot.loader.launch.JarLauncher"]
+# umask 027: files 0640, dirs 0750; nginx reads them through the PGID group (docs/spec/08).
+ENTRYPOINT ["/bin/sh", "-c", "umask 027 && exec java -XX:MaxRAMPercentage=75 org.springframework.boot.loader.launch.JarLauncher \"$@\"", "kuratoon"]

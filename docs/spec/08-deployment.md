@@ -4,14 +4,19 @@
 
 | Service | Image | Notes |
 |---|---|---|
-| `postgres` | official postgres (pinned major) | volume `${DATA_ROOT}/postgres` |
-| `byparr` | `ghcr.io/thephaseless/byparr` (pinned tag) | internal only; optional (comment out to disable) |
+| `postgres` | official postgres (pinned version) | volume `${DATA_ROOT}/postgres` mounted at `/var/lib/postgresql` (Postgres 18+ keeps PGDATA in `/var/lib/postgresql/<major>/docker`) |
+| `byparr` | `ghcr.io/thephaseless/byparr` (pinned tag) | internal only; optional (comment out to disable); nothing depends on it |
 | `backend` | built from `backend/Dockerfile` | includes libvips; internal only |
 | `frontend` | built from `frontend/Dockerfile` | Next.js standalone output; internal only |
-| `nginx` | official nginx (pinned) | **the only published port** (`${APP_PORT:-8080}`) |
+| `nginx` | `nginxinc/nginx-unprivileged` (pinned) | **the only published port** (`${APP_PORT:-8080}`); runs as uid 101 with `group_add: ["${PGID}"]` |
 
-All services on one internal network. Healthchecks on postgres, backend (`/actuator/health`),
-frontend and nginx; `depends_on` with `condition: service_healthy`.
+All services on one internal network with a fixed subnet (`INTERNAL_SUBNET`). Healthchecks on
+postgres, backend (`/actuator/health`), frontend and nginx; `depends_on` with
+`condition: service_healthy`.
+
+Health URLs: the public health check is `/api/v1/health` (status only, through nginx).
+`/actuator/health` is internal (compose healthcheck); nginx does not route `/actuator`, and
+Actuator exposes no other endpoint.
 
 `deploy/docker-compose.dev.yml` runs only `postgres` and `byparr` (ports published to localhost)
 for local development.
@@ -33,6 +38,11 @@ Imports are copied from `/import` into `/library/.staging/`, then renamed into p
 may be on a different disk; only the final rename must stay within `/library`. Containers run as a non-root user with configurable
 `PUID`/`PGID`.
 
+The host folders must exist before the first start and be owned by `PUID:PGID` (group needs at
+least `r-x` on `LIBRARY_DIR`/`DATA_DIR` for nginx). The backend runs with `umask 027`: files it
+writes are `0640`, directories `0750`. nginx (uid 101) reads `/library` and `/data` through its
+supplementary group `PGID`; nothing needs to be world-readable.
+
 Backups: stop the stack and copy the volumes. The library is also self-describing through
 sidecars ("Rebuild library from disk").
 
@@ -45,7 +55,12 @@ templates directory).
 - `secure_link` validation when `IMAGE_ACCESS=signed`.
 - `limit_req` / `limit_conn` zones from `RATE_LIMIT_*`.
 - `set_real_ip_from` for each entry of `TRUSTED_PROXIES`, `real_ip_header X-Forwarded-For`,
-  `real_ip_recursive on`.
+  `real_ip_recursive on`. Only nginx consumes `TRUSTED_PROXIES`.
+- Upstream requests carry `X-Forwarded-For $remote_addr` and `X-Real-IP $remote_addr`
+  (overwritten, never appended), so a client cannot inject addresses past nginx.
+- The backend trusts forwarded headers only from `INTERNAL_SUBNET` (Tomcat `internal-proxies`),
+  not from arbitrary private ranges: LAN/VPN clients have private IPs too and could otherwise
+  spoof `X-Forwarded-For` to dodge per-IP rate limits.
 - Security headers, gzip for text, `client_max_body_size` small (no uploads in v1 except covers:
   10 MB on the cover upload route).
 
@@ -61,7 +76,8 @@ templates directory).
 | `JWT_SECRET` | — (required, ≥32 bytes) | access token signing |
 | `IMAGE_ACCESS` | signed | `signed` \| `public` |
 | `IMAGE_SIGNING_SECRET` | — (required when signed) | nginx secure_link secret |
-| `TRUSTED_PROXIES` | — | comma-separated IPs/CIDRs of the installer's reverse proxy |
+| `TRUSTED_PROXIES` | — | comma-separated IPs/CIDRs of the installer's reverse proxy (nginx only) |
+| `INTERNAL_SUBNET` | 172.30.71.0/24 | subnet of the compose network; the only source the backend accepts forwarded headers from. Change only if it collides with an existing network |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_EMAIL` | — | optional admin bootstrap |
 | `ADMIN_FORCE_RESET` | false | reset that admin on boot (remove after use) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_FROM` / `SMTP_TLS` | — | enables password reset |

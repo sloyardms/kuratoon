@@ -121,7 +121,7 @@
     standalone build.
   - Fixtures: `check_deterministic.py`.
   - CI docker job: smoke test of the full stack through nginx.
-- Status, all run locally on Windows 11 with Docker Desktop:
+- Status (before the post-review fixes, which add 3 backend tests), all run locally on Windows 11 with Docker Desktop:
   - Backend: `./mvnw verify` passes 14 tests.
   - Frontend: `npm run lint`, `typecheck`, `test` (1 test) and `test:e2e` (1 test) pass;
     `prettier --check` is clean.
@@ -154,8 +154,27 @@
   `git update-index --chmod=+x`, because `core.filemode=false` on Windows.
 
 ## Open questions for the owner
-- nginx running as uid 101 and relying on world-readable library files: acceptable, or should
-  nginx run as `PUID:PGID` (needs a custom `nginx.conf` with writable temp/pid paths)?
+- None. The owner settled the nginx question in review (see below).
+
+## Post-review fixes
+- **Spec 08 updated, as the owner instructed**:
+  - public health URL vs. internal Actuator;
+  - `nginx-unprivileged` with `group_add: ["${PGID}"]`;
+  - backend `umask 027` (files 0640, dirs 0750);
+  - Postgres 18 mount point and pre-created host folders;
+  - XFF overwrite and internal-proxy trust, plus the new `INTERNAL_SUBNET` variable.
+- **nginx** stays uid 101 and gets the supplementary group `PGID`; nothing has to be
+  world-readable any more.
+- **Client IP spoofing**:
+  - nginx now sends `X-Forwarded-For $remote_addr` (overwrite, not append).
+  - The compose network has a fixed subnet (`INTERNAL_SUBNET`, default `172.30.71.0/24`), and
+    Tomcat's `internal-proxies` is that CIDR instead of the default private-range regex. Empty
+    means no proxy is trusted (local dev).
+  - `ForwardedHeadersIT` shows that a spoofed XFF is ignored from outside the subnet and with no
+    subnet set, and honoured from inside it.
+  - `TRUSTED_PROXIES` is no longer passed to the backend.
+- **CI docker job** now also checks the backend umask and that nginx can read a 0640 file the
+  backend wrote.
 
 ## How to verify manually
 1. Backend: `cd backend && ./mvnw verify` (Docker must be running for Testcontainers).
