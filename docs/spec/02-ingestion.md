@@ -104,9 +104,11 @@ NEEDS_ATTENTION / FAILED → DISMISSED (admin action; finished)
 - `PROCESSING`: validate images, copy files, write DB, generate thumbnails, write sidecar.
 - `NEEDS_ATTENTION`: a decision is needed. `message` explains it; `detail` holds the data.
 - `FAILED`: technical failure. Retry button re-runs from the start.
-- `DISMISSED`: the admin dismissed the job. It is finished (`finished_at` set). Dismiss renames
-  the source folder in `/import` to `.dismissed-<name>`, so the poller (which ignores folders
-  starting with `.`) does not pick it up again.
+- `DISMISSED`: the admin dismissed the job (only from `NEEDS_ATTENTION` or `FAILED`). It is
+  finished (`finished_at` set). Dismiss renames the source folder in `/import` to
+  `.dismissed-<name>-<jobId>`, so the poller (which ignores folders starting with `.`) does not
+  pick it up again. The job id makes the name unique, so it never collides. To re-import, the
+  admin renames the folder manually.
 
 The Imports admin page lists jobs with status, message, the parsed chapter table
 (folder → number → title → page count → warnings) and actions: Retry, Fill metadata manually,
