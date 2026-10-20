@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>dev.kuratoon</groupId>
+        <artifactId>kuratoon-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>example-plugin</artifactId>
+    <name>Kuratoon example plugin</name>
+    <description>Reference plugin that parses the fake site in fixtures/html (tests only).</description>
+
+    <dependencies>
+        <!-- Provided by the host at runtime; never bundled into the plugin JAR. -->
+        <dependency>
+            <groupId>dev.kuratoon</groupId>
+            <artifactId>plugin-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>plugin-depends-only-on-plugin-api</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <exclude>*:*</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>dev.kuratoon:plugin-api</include>
+                                        <include>org.jsoup:jsoup</include>
+                                        <include>*:*:*:*:test</include>
+                                    </includes>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
