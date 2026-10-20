@@ -51,11 +51,10 @@ server {
     proxy_set_header X-Forwarded-Proto $kuratoon_forwarded_proto;
     proxy_set_header X-Forwarded-Host $host;
 
+    # Liveness of nginx itself (compose healthcheck). Reveals nothing, so it is not restricted:
+    # behind Docker's port proxy, client addresses are not reliable enough for allow/deny.
     location = /healthz {
         access_log off;
-        allow 127.0.0.1;
-        allow ::1;
-        deny all;
         default_type text/plain;
         return 200 "ok\n";
     }
