@@ -2,20 +2,36 @@
 
 ## Architecture
 
-- Spring Boot owns users, passwords, roles and tokens. It is the only issuer and verifier of JWTs.
-- Next.js uses Auth.js with a Credentials provider as a thin session layer: it calls the backend
-  login endpoint and keeps the backend's tokens; it never decides authorization.
-- All authorization is enforced in Spring Boot.
+- Spring Boot owns users, passwords, roles and tokens. It is the only issuer and verifier of JWTs
+  (ADR 0013).
+- The backend delivers both tokens as `httpOnly` cookies. There is no session library in Next.js:
+  - **Browser**: TanStack Query calls `/api` directly with `credentials: 'include'`. On a 401 it runs
+    a single-flight refresh (`POST /api/v1/auth/refresh`), retries the request once, and navigates
+    to `/login` if the refresh fails.
+  - **SSR**: Next.js forwards the incoming cookies to the backend's internal URL. `proxy.ts`
+    refreshes when the access cookie is missing or expires in less than 60 s, and sets the new
+    cookies on both the response and the forwarded request, so rendering in the same request
+    already sees the new access token.
+- Next.js never decides authorization. All authorization is enforced in Spring Boot.
 
 ## Tokens
 
 - **Access token**: JWT, HS256 with a single secret (`JWT_SECRET`, ≥ 32 bytes), lifetime 15 min.
   Claims: `sub` (user id), `role`, `tv` (token_version), `exp`, `iat`.
   Rejected if `tv` ≠ current `app_user.token_version` or the user is disabled.
+  Delivered in the `kuratoon_access` cookie (`Path=/`, 15 min). The backend reads it from that
+  cookie or from an `Authorization: Bearer` header (tests and tools).
 - **Refresh token**: opaque random 256-bit value, stored hashed (`refresh_token`), lifetime 30 days,
-  delivered in an `httpOnly`, `Secure` (when HTTPS), `SameSite=Lax` cookie.
-  Rotated on every use. Reuse of an already-rotated token revokes the whole family.
-- Logout revokes the current refresh token. "Log out everywhere" bumps `token_version`.
+  delivered in the `kuratoon_refresh` cookie (`Path=/`, 30 days). The backend ignores it everywhere
+  except `/api/v1/auth/*`.
+- Both cookies are `httpOnly`, `SameSite=Lax`, and `Secure` when `APP_BASE_URL` is https.
+- Rotated on every use. Reusing the just-rotated token within a **~10 s grace window** returns the
+  same successor pair, which covers parallel requests and prefetches refreshing at the same time.
+  Reuse outside the window revokes the whole family.
+- **CSRF**: `SameSite=Lax` plus an Origin check on every non-GET request. Origin must match the
+  `APP_BASE_URL` origin; `APP_BASE_URL` is the only supported access URL.
+- Logout revokes the current refresh token and clears both cookies. "Log out everywhere" bumps
+  `token_version`.
 
 ## Passwords
 

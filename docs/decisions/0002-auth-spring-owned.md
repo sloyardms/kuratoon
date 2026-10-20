@@ -1,6 +1,6 @@
 # 0002 — Spring Boot owns auth; Auth.js is a thin session layer
 
-**Status**: accepted
+**Status**: superseded by 0013
 
 **Decision**: Spring Boot stores users and issues/verifies HS256 JWTs (short-lived) plus rotating
 opaque refresh tokens. Next.js Auth.js uses a Credentials provider only to hold the session.

@@ -46,7 +46,7 @@ Specs: `04-auth-users.md`.
 - Login, refresh rotation with reuse detection, logout, log out everywhere.
 - First-run setup, env bootstrap, `ADMIN_FORCE_RESET`.
 - Registration toggle, SMTP check + password reset, admin Users page API, settings API, audit log.
-- Frontend: Auth.js integration, `/setup`, `/login`, `/register`, `/forgot-password`,
+- Frontend: cookie-based auth integration (ADR 0013), `/setup`, `/login`, `/register`, `/forgot-password`,
   `/reset-password`, app shell with top bar, admin Users + Settings pages.
 
 **Done when**

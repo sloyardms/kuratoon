@@ -5,7 +5,8 @@
 - Next.js (App Router), TypeScript strict, npm (commit `package-lock.json`).
 - Tailwind CSS + shadcn/ui. Custom components for cover cards, the reader and the crop tools.
 - TanStack Query for server state (including `useInfiniteQuery` for feeds).
-- Auth.js with a Credentials provider as a thin session layer over the backend's JWTs.
+- No session library: the backend sets httpOnly auth cookies (ADR 0013). The browser calls `/api`
+  with `credentials: 'include'`; `src/proxy.ts` refreshes cookies for server rendering.
 - Testing: Vitest + Testing Library for components; Playwright for critical flows (login, reader).
 - Lint/format: ESLint + Prettier.
 
