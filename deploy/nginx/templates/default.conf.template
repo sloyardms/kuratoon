@@ -61,6 +61,13 @@ server {
         return 200 "ok\n";
     }
 
+    # TEMPORARY (phase 1 only): the admin API has no authentication until phase 2, so it is not
+    # reachable through nginx. Phase 2 removes this block once Spring Security protects it.
+    location /api/v1/admin/ {
+        default_type application/problem+json;
+        return 403 '{"type":"about:blank","title":"Forbidden","status":403,"detail":"The admin API is disabled until authentication is available."}';
+    }
+
     location /api/ {
         proxy_pass http://kuratoon_backend;
     }

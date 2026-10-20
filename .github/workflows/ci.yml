@@ -116,6 +116,10 @@ jobs:
           test "$(curl -fsS http://localhost:8080/api/v1/health)" = '{"status":"UP"}'
           # Actuator is internal only.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/actuator/health)" = 404
+          # Admin API is blocked at nginx until authentication exists (phase 2).
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/admin/media-types)" = 403
+          # Read API is routed (unknown media -> 404 Problem Details from the backend).
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/media/00000000-0000-7000-8000-000000000000)" = 404
       - name: Permission model (backend umask 027, nginx reads via PGID)
         run: |
           compose="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
