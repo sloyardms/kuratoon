@@ -1,6 +1,6 @@
 # Internal nginx: the only published service. Rendered with envsubst at container start
 # (official image templates mechanism). Real-IP settings come from 15-real-ip.sh.
-# Image delivery (/img/, secure_link) and rate limits are added in phase 5.
+# Image delivery (/img/, secure_link) and the image/API rate limits are added in phase 5.
 
 server_tokens off;
 
@@ -17,6 +17,11 @@ gzip_proxied any;
 gzip_vary on;
 gzip_types text/plain text/css text/javascript application/javascript application/json
            application/problem+json image/svg+xml;
+
+# Coarse per-IP limit on the auth endpoints (docs/spec/04-auth-users.md); the backend applies the
+# finer per-IP and per-username limits behind it.
+limit_req_zone $binary_remote_addr zone=kuratoon_auth:10m rate=${RATE_LIMIT_AUTH_RPM}r/m;
+limit_req_status 429;
 
 upstream kuratoon_frontend {
     server frontend:3000;
@@ -61,11 +66,21 @@ server {
         return 200 "ok\n";
     }
 
-    # TEMPORARY (phase 1 only): the admin API has no authentication until phase 2, so it is not
-    # reachable through nginx. Phase 2 removes this block once Spring Security protects it.
-    location /api/v1/admin/ {
+    # Read-only and requested by every auth page, so it is not counted against the auth limit.
+    location = /api/v1/auth/status {
+        proxy_pass http://kuratoon_backend;
+    }
+
+    location /api/v1/auth/ {
+        limit_req zone=kuratoon_auth burst=${RATE_LIMIT_AUTH_BURST} nodelay;
+        error_page 429 = @too_many_requests;
+        proxy_pass http://kuratoon_backend;
+    }
+
+    location @too_many_requests {
         default_type application/problem+json;
-        return 403 '{"type":"about:blank","title":"Forbidden","status":403,"detail":"The admin API is disabled until authentication is available."}';
+        add_header Retry-After 60 always;
+        return 429 '{"type":"about:blank","title":"Too Many Requests","status":429,"detail":"Too many attempts. Try again later."}';
     }
 
     location /api/ {

@@ -64,11 +64,11 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_FORCE_RESET: ${ADMIN_FORCE_RESET:-false}
       SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
-      SMTP_TLS: ${SMTP_TLS:-}
+      SMTP_TLS: ${SMTP_TLS:-false}
       SOLVER_URL: ${SOLVER_URL-http://byparr:8191}
       SOLVER_TIMEOUT_MS: ${SOLVER_TIMEOUT_MS:-60000}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
@@ -98,6 +98,8 @@ services:
     <<: *run-as
     restart: unless-stopped
     environment:
+      # Server-side calls (proxy.ts refresh, server rendering) go straight to the backend.
+      BACKEND_INTERNAL_URL: http://backend:8080
       APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL is required}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -116,6 +118,8 @@ services:
     environment:
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       IMAGE_ACCESS: ${IMAGE_ACCESS:-signed}
+      RATE_LIMIT_AUTH_RPM: ${RATE_LIMIT_AUTH_RPM:-10}
+      RATE_LIMIT_AUTH_BURST: ${RATE_LIMIT_AUTH_BURST:-10}
     volumes:
       - ./nginx/templates:/etc/nginx/templates:ro
       - ./nginx/entrypoint.d/15-real-ip.sh:/docker-entrypoint.d/15-real-ip.sh:ro

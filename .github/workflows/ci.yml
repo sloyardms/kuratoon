@@ -79,14 +79,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-      - if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report
-          path: frontend/playwright-report
-          retention-days: 7
+      - run: npm run format:check
 
   docker:
     needs: changes
@@ -116,10 +109,11 @@ jobs:
           test "$(curl -fsS http://localhost:8080/api/v1/health)" = '{"status":"UP"}'
           # Actuator is internal only.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/actuator/health)" = 404
-          # Admin API is blocked at nginx until authentication exists (phase 2).
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/admin/media-types)" = 403
-          # Read API is routed (unknown media -> 404 Problem Details from the backend).
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/media/00000000-0000-7000-8000-000000000000)" = 404
+          # The API needs a login (Problem Details 401 from the backend).
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/admin/media-types)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/media/00000000-0000-7000-8000-000000000000)" = 401
+          # Fresh database: setup is required.
+          curl -fsS http://localhost:8080/api/v1/auth/status | grep -q '"setupRequired":true'
       - name: Permission model (backend umask 027, nginx reads via PGID)
         run: |
           compose="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
@@ -127,6 +121,25 @@ jobs:
           $compose exec -T backend sh -c 'umask 027 && mkdir -p /library/.ci && echo ok > /library/.ci/probe'
           test "$(stat -c '%a' deploy/data/library/.ci/probe)" = 640
           test "$($compose exec -T nginx cat /library/.ci/probe)" = ok
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: End-to-end tests (Playwright against the stack)
+        working-directory: frontend
+        env:
+          BASE_URL: http://localhost:8080
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
       - name: Logs
         if: failure()
         run: docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs --no-color
