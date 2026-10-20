@@ -1,0 +1,32 @@
+# Local development dependencies only (Postgres + Byparr), ports bound to localhost.
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+# The backend then runs with `./mvnw -pl app spring-boot:run` and the frontend with `npm run dev`.
+# The password below is a local-only development default; production uses deploy/.env.
+
+name: kuratoon-dev
+
+services:
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: kuratoon
+      POSTGRES_USER: kuratoon
+      POSTGRES_PASSWORD: kuratoon-dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-dev:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuratoon -d kuratoon"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  byparr:
+    image: ghcr.io/thephaseless/byparr:3.0.4
+    shm_size: 1gb
+    ports:
+      - "127.0.0.1:8191:8191"
+
+volumes:
+  postgres-dev: {}

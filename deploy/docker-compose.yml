@@ -1,0 +1,131 @@
+# Kuratoon stack. Usage (from the repo root):
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+# Every variable is documented in deploy/.env.example. Only nginx publishes a port.
+
+name: kuratoon
+
+x-run-as: &run-as
+  user: "${PUID:-1000}:${PGID:-1000}"
+
+services:
+  postgres:
+    image: postgres:18.6
+    <<: *run-as
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kuratoon}
+      POSTGRES_USER: ${POSTGRES_USER:-kuratoon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      # Postgres 18 keeps PGDATA in a versioned subfolder (/var/lib/postgresql/18/docker).
+      # The host folder must exist and be owned by PUID:PGID before the first start.
+      - ${DATA_ROOT:?DATA_ROOT is required}/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [internal]
+
+  # Optional challenge solver (FlareSolverr-compatible). To disable it, comment out this service
+  # and set SOLVER_URL= (empty) in .env. Nothing depends on it at startup.
+  byparr:
+    image: ghcr.io/thephaseless/byparr:3.0.4
+    restart: unless-stopped
+    shm_size: 1gb
+    networks: [internal]
+
+  backend:
+    build:
+      context: ../backend
+    image: kuratoon-backend:local
+    <<: *run-as
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-kuratoon}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-kuratoon}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      IMAGE_ACCESS: ${IMAGE_ACCESS:-signed}
+      IMAGE_SIGNING_SECRET: ${IMAGE_SIGNING_SECRET:-}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_FORCE_RESET: ${ADMIN_FORCE_RESET:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TLS: ${SMTP_TLS:-}
+      SOLVER_URL: ${SOLVER_URL-http://byparr:8191}
+      SOLVER_TIMEOUT_MS: ${SOLVER_TIMEOUT_MS:-60000}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
+      IMPORT_POLL_SECONDS: ${IMPORT_POLL_SECONDS:-30}
+      IMPORT_STABLE_SECONDS: ${IMPORT_STABLE_SECONDS:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${IMPORT_DIR:?IMPORT_DIR is required}:/import
+      - ${LIBRARY_DIR:?LIBRARY_DIR is required}:/library
+      - ${DATA_DIR:?DATA_DIR is required}:/data
+      - ${PLUGINS_DIR:?PLUGINS_DIR is required}:/plugins:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks: [internal]
+
+  frontend:
+    build:
+      context: ../frontend
+    image: kuratoon-frontend:local
+    <<: *run-as
+    restart: unless-stopped
+    environment:
+      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL is required}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [internal]
+
+  nginx:
+    # Non-root nginx (uid 101). It only reads /library and /data, which the backend writes with
+    # world-readable permissions.
+    image: nginxinc/nginx-unprivileged:1.30.6-alpine
+    restart: unless-stopped
+    environment:
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      IMAGE_ACCESS: ${IMAGE_ACCESS:-signed}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./nginx/entrypoint.d/15-real-ip.sh:/docker-entrypoint.d/15-real-ip.sh:ro
+      - ${LIBRARY_DIR:?LIBRARY_DIR is required}:/library:ro
+      - ${DATA_DIR:?DATA_DIR is required}:/data:ro
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [internal]
+
+networks:
+  internal: {}

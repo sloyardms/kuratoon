@@ -6,10 +6,11 @@ spring:
     virtual:
       enabled: true
   datasource:
-    # Compose sets SPRING_DATASOURCE_* explicitly; these defaults target the dev compose database.
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:kuratoon}
-    username: ${POSTGRES_USER:kuratoon}
-    password: ${POSTGRES_PASSWORD:}
+    # Compose sets SPRING_DATASOURCE_* explicitly. These defaults target the local-only database
+    # from deploy/docker-compose.dev.yml.
+    url: jdbc:postgresql://localhost:5432/kuratoon
+    username: kuratoon
+    password: kuratoon-dev
   jpa:
     open-in-view: false
     hibernate:
