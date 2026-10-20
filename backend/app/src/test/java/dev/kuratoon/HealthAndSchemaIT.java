@@ -63,7 +63,8 @@ class HealthAndSchemaIT {
                 "/actuator/metrics",
                 "/actuator/configprops",
                 "/actuator/health/db")) {
-            assertThat(get(path).statusCode()).as(path).isEqualTo(404);
+            // Denied by security (401) or absent (404); never served. nginx does not route /actuator either.
+            assertThat(get(path).statusCode()).as(path).isIn(401, 404);
         }
     }
 

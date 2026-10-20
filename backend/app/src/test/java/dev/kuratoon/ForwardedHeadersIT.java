@@ -2,6 +2,10 @@ package dev.kuratoon;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.kuratoon.auth.JwtService;
+import dev.kuratoon.user.AppUser;
+import dev.kuratoon.user.AppUserRepository;
+import dev.kuratoon.user.Role;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -9,6 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -38,9 +43,15 @@ class ForwardedHeadersIT {
         @LocalServerPort
         int port;
 
+        @Autowired
+        AppUserRepository users;
+
+        @Autowired
+        JwtService jwt;
+
         @Test
         void spoofedForwardedForIsIgnored() throws Exception {
-            assertThat(remoteAddr(port, SPOOFED)).isEqualTo("127.0.0.1");
+            assertThat(remoteAddr(port, SPOOFED, token(users, jwt))).isEqualTo("127.0.0.1");
         }
     }
 
@@ -53,9 +64,15 @@ class ForwardedHeadersIT {
         @LocalServerPort
         int port;
 
+        @Autowired
+        AppUserRepository users;
+
+        @Autowired
+        JwtService jwt;
+
         @Test
         void noProxyIsTrusted() throws Exception {
-            assertThat(remoteAddr(port, SPOOFED)).isEqualTo("127.0.0.1");
+            assertThat(remoteAddr(port, SPOOFED, token(users, jwt))).isEqualTo("127.0.0.1");
         }
     }
 
@@ -70,15 +87,28 @@ class ForwardedHeadersIT {
         @LocalServerPort
         int port;
 
+        @Autowired
+        AppUserRepository users;
+
+        @Autowired
+        JwtService jwt;
+
         @Test
         void forwardedForFromNginxIsHonoured() throws Exception {
-            assertThat(remoteAddr(port, SPOOFED)).isEqualTo(SPOOFED);
+            assertThat(remoteAddr(port, SPOOFED, token(users, jwt))).isEqualTo(SPOOFED);
         }
     }
 
-    private static String remoteAddr(int port, String forwardedFor) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/test/remote-addr"))
+    /** A logged-in user's token: the endpoint is under /api/v1, which needs authentication. */
+    private static String token(AppUserRepository users, JwtService jwt) {
+        AppUser user = users.save(new AppUser("fwd" + System.nanoTime() % 1_000_000, null, "unused-hash", Role.USER));
+        return jwt.issue(user).value();
+    }
+
+    private static String remoteAddr(int port, String forwardedFor, String token) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v1/test/remote-addr"))
                 .header("X-Forwarded-For", forwardedFor)
+                .header("Authorization", "Bearer " + token)
                 .GET()
                 .build();
         HttpResponse<String> response =
@@ -91,7 +121,7 @@ class ForwardedHeadersIT {
     @RestController
     static class RemoteAddrEndpoint {
 
-        @GetMapping("/test/remote-addr")
+        @GetMapping("/api/v1/test/remote-addr")
         String remoteAddr(HttpServletRequest request) {
             return request.getRemoteAddr();
         }

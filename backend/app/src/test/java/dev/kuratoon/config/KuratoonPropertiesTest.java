@@ -85,6 +85,35 @@ class KuratoonPropertiesTest {
     }
 
     @Test
+    void adminBootstrapNeedsAValidUsernameAndAStrongEnoughPassword() {
+        runner.withPropertyValues("kuratoon.admin.username=boss", "kuratoon.admin.password=short")
+                .run(context -> assertFailureMentions(context, "ADMIN_PASSWORD is required (at least 10 characters)"));
+        runner.withPropertyValues("kuratoon.admin.username=bad name", "kuratoon.admin.password=long-enough-pw")
+                .run(context -> assertFailureMentions(context, "ADMIN_USERNAME must be"));
+        runner.withPropertyValues("kuratoon.admin.force-reset=true")
+                .run(context -> assertFailureMentions(context, "ADMIN_FORCE_RESET=true requires ADMIN_USERNAME"));
+        runner.withPropertyValues("kuratoon.admin.username=boss", "kuratoon.admin.password=long-enough-pw")
+                .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
+    void smtpHostRequiresFromAddress() {
+        runner.withPropertyValues("kuratoon.smtp.host=mail.example.com")
+                .run(context -> assertFailureMentions(context, "SMTP_FROM is required"));
+    }
+
+    @Test
+    void appOriginNormalizesDefaultPorts() {
+        runner.withPropertyValues("kuratoon.app-base-url=HTTPS://Manga.Example.com:443/app/").run(context ->
+                assertThat(context.getBean(KuratoonProperties.class).appOrigin()).isEqualTo("https://manga.example.com"));
+        runner.withPropertyValues("kuratoon.app-base-url=http://192.168.1.5:8080").run(context -> {
+            KuratoonProperties props = context.getBean(KuratoonProperties.class);
+            assertThat(props.appOrigin()).isEqualTo("http://192.168.1.5:8080");
+            assertThat(props.secureCookies()).isFalse();
+        });
+    }
+
+    @Test
     void emptySolverUrlDisablesSolver() {
         runner.withPropertyValues("kuratoon.solver.endpoint=").run(context -> {
             assertThat(context).hasNotFailed();

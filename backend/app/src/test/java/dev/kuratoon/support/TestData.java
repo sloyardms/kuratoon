@@ -20,6 +20,10 @@ import dev.kuratoon.parody.ParodyRepository;
 import dev.kuratoon.tag.Tag;
 import dev.kuratoon.tag.TagKind;
 import dev.kuratoon.tag.TagRepository;
+import dev.kuratoon.user.AppUser;
+import dev.kuratoon.user.AppUserRepository;
+import dev.kuratoon.user.Role;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +44,11 @@ public class TestData {
     private final StoryCharacterRepository characters;
     private final MediaRelationRepository relations;
     private final TransactionTemplate tx;
+    private final AppUserRepository users;
+    private final PasswordEncoder passwords;
+
+    /** Password of every user created by {@link #aUser}. */
+    public static final String PASSWORD = "correct-horse-battery";
 
     public TestData(
             MediaTypeRepository mediaTypes,
@@ -50,7 +59,9 @@ public class TestData {
             ParodyRepository parodies,
             StoryCharacterRepository characters,
             MediaRelationRepository relations,
-            TransactionTemplate tx) {
+            TransactionTemplate tx,
+            AppUserRepository users,
+            PasswordEncoder passwords) {
         this.mediaTypes = mediaTypes;
         this.media = media;
         this.chapters = chapters;
@@ -60,6 +71,13 @@ public class TestData {
         this.characters = characters;
         this.relations = relations;
         this.tx = tx;
+        this.users = users;
+        this.passwords = passwords;
+    }
+
+    /** An enabled user with password {@link #PASSWORD} and email {@code <username>@example.test}. */
+    public AppUser aUser(String username, Role role) {
+        return users.save(new AppUser(username, username + "@example.test", passwords.encode(PASSWORD), role));
     }
 
     public MediaType mediaType(String slug) {

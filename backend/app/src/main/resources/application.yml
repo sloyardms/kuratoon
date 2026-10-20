@@ -66,3 +66,15 @@ kuratoon:
   import-polling:
     poll-interval: ${IMPORT_POLL_SECONDS:30}s
     stable-after: ${IMPORT_STABLE_SECONDS:60}s
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+    email: ${ADMIN_EMAIL:}
+    force-reset: ${ADMIN_FORCE_RESET:false}
+  smtp:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    from: ${SMTP_FROM:}
+    tls: ${SMTP_TLS:false}

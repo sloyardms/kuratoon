@@ -44,7 +44,15 @@ public record KuratoonProperties(
 
         @DefaultValue
         @Valid
-        ImportPolling importPolling) {
+        ImportPolling importPolling,
+
+        @DefaultValue
+        @Valid
+        Admin admin,
+
+        @DefaultValue
+        @Valid
+        Smtp smtp) {
 
     static final int MIN_JWT_SECRET_BYTES = 32;
 
@@ -91,4 +99,68 @@ public record KuratoonProperties(
     public record ImportPolling(
             @DefaultValue("30s") @NotNull Duration pollInterval,
             @DefaultValue("60s") @NotNull Duration stableAfter) {}
+
+    /** Origin ({@code scheme://host[:port]}) of {@link #appBaseUrl()}: the only supported access URL. */
+    public String appOrigin() {
+        String scheme = appBaseUrl.getScheme().toLowerCase(java.util.Locale.ROOT);
+        int port = appBaseUrl.getPort();
+        // Browsers omit default ports in the Origin header.
+        boolean defaultPort = port == -1 || ("https".equals(scheme) && port == 443) || ("http".equals(scheme) && port == 80);
+        return scheme + "://" + appBaseUrl.getHost().toLowerCase(java.util.Locale.ROOT) + (defaultPort ? "" : ":" + port);
+    }
+
+    /** Cookies are {@code Secure} when the public URL is https. */
+    public boolean secureCookies() {
+        return "https".equalsIgnoreCase(appBaseUrl.getScheme());
+    }
+
+    /**
+     * Optional admin bootstrap ({@code ADMIN_*}, docs/spec/04-auth-users.md "First run").
+     *
+     * @param forceReset reset the existing admin on every boot while true
+     */
+    public record Admin(String username, String password, String email, @DefaultValue("false") boolean forceReset) {
+
+        public boolean configured() {
+            return username != null && !username.isBlank();
+        }
+
+        @AssertTrue(message = "ADMIN_USERNAME must be 3-32 characters of letters, digits, '_', '.' or '-'")
+        public boolean isUsernameValid() {
+            return !configured() || username.strip().matches("^[a-zA-Z0-9_.-]{3,32}$");
+        }
+
+        @AssertTrue(message = "ADMIN_PASSWORD is required (at least 10 characters) when ADMIN_USERNAME is set")
+        public boolean isPasswordValid() {
+            return !configured() || (password != null && password.length() >= 10);
+        }
+
+        @AssertTrue(message = "ADMIN_FORCE_RESET=true requires ADMIN_USERNAME and ADMIN_PASSWORD")
+        public boolean isForceResetValid() {
+            return !forceReset || configured();
+        }
+    }
+
+    /**
+     * SMTP for password reset ({@code SMTP_*}). Unset host disables mail.
+     *
+     * @param tls {@code true}: STARTTLS required; anything else: plain connection
+     */
+    public record Smtp(
+            String host,
+            @DefaultValue("587") int port,
+            String username,
+            String password,
+            String from,
+            @DefaultValue("false") boolean tls) {
+
+        public boolean configured() {
+            return host != null && !host.isBlank();
+        }
+
+        @AssertTrue(message = "SMTP_FROM is required when SMTP_HOST is set")
+        public boolean isFromPresentWhenConfigured() {
+            return !configured() || (from != null && !from.isBlank());
+        }
+    }
 }
