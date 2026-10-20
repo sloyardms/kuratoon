@@ -2,6 +2,11 @@
 
 # ---- build ----
 FROM eclipse-temurin:25.0.4.1_1-jdk-noble AS build
+# The Maven wrapper verifies the pinned .zip distribution; without unzip it would silently switch
+# to the .tar.gz and fail the SHA-256 check.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends unzip \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 
 COPY mvnw ./
