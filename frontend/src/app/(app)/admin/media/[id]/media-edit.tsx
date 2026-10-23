@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { use, useState } from "react";
 import { toast } from "sonner";
 
 import { CoverCropTool } from "@/components/cover-crop-tool";
@@ -56,7 +56,8 @@ type Confirm =
   { kind: "chapter"; id: string; number: number } | { kind: "media" } | null;
 
 /** Admin media edit page: field locking, cover crop, relations, chapters (docs/spec/02, 06). */
-export function MediaEdit({ id }: { id: string }) {
+export function MediaEdit({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const queryClient = useQueryClient();
   const router = useRouter();
   const key = ["admin", "media", "edit", id];

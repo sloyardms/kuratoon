@@ -1,10 +1,16 @@
+import { Suspense } from "react";
+
 import { MediaEdit } from "./media-edit";
 
-export default async function MediaEditPage({
+/** The id is read inside Suspense, so the route shell prerenders (cacheComponents). */
+export default function MediaEditPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  return <MediaEdit id={id} />;
+  return (
+    <Suspense>
+      <MediaEdit params={params} />
+    </Suspense>
+  );
 }
