@@ -180,12 +180,13 @@ public class Media extends BaseEntity {
         characters.add(character);
     }
 
-    /** Keeps the denormalized chapter counters in step when a chapter is added. */
-    public void chapterAdded(Instant addedAt) {
-        chapterCount++;
-        if (latestChapterAddedAt == null || addedAt.isAfter(latestChapterAddedAt)) {
-            latestChapterAddedAt = addedAt;
-        }
+    /**
+     * Sets the denormalized chapter counters. Only {@code ChapterCounters.recalculate} calls this,
+     * with values derived from the chapter rows.
+     */
+    public void setChapterCounters(int chapterCount, Instant latestChapterAddedAt) {
+        this.chapterCount = chapterCount;
+        this.latestChapterAddedAt = latestChapterAddedAt;
     }
 
     public void setDescription(String description) {

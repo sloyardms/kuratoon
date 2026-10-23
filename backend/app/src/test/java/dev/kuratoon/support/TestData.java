@@ -1,6 +1,7 @@
 package dev.kuratoon.support;
 
 import dev.kuratoon.chapter.Chapter;
+import dev.kuratoon.chapter.ChapterCounters;
 import dev.kuratoon.chapter.ChapterRepository;
 import dev.kuratoon.chapter.PageEntry;
 import dev.kuratoon.character.StoryCharacter;
@@ -25,6 +26,7 @@ import dev.kuratoon.user.AppUserRepository;
 import dev.kuratoon.user.Role;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -38,6 +40,7 @@ public class TestData {
     private final MediaTypeRepository mediaTypes;
     private final MediaRepository media;
     private final ChapterRepository chapters;
+    private final ChapterCounters chapterCounters;
     private final CreatorRepository creators;
     private final TagRepository tags;
     private final ParodyRepository parodies;
@@ -54,6 +57,7 @@ public class TestData {
             MediaTypeRepository mediaTypes,
             MediaRepository media,
             ChapterRepository chapters,
+            ChapterCounters chapterCounters,
             CreatorRepository creators,
             TagRepository tags,
             ParodyRepository parodies,
@@ -65,6 +69,7 @@ public class TestData {
         this.mediaTypes = mediaTypes;
         this.media = media;
         this.chapters = chapters;
+        this.chapterCounters = chapterCounters;
         this.creators = creators;
         this.tags = tags;
         this.parodies = parodies;
@@ -207,8 +212,10 @@ public class TestData {
                             new PageEntry("001.jpg", 800, 1200),
                             new PageEntry("002.jpg", 800, 1200),
                             new PageEntry("003.jpg", 800, 1200));
-                    chapters.save(new Chapter(m, new BigDecimal(number), null, "Chapter " + number, pages));
+                    chapters.save(new Chapter(
+                            m, new BigDecimal(number), null, "Chapter " + number, pages, Instant.now()));
                 }
+                chapterCounters.recalculate(m);
                 return m;
             });
         }

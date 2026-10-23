@@ -48,17 +48,37 @@ public class Chapter extends BaseEntity {
 
     protected Chapter() {}
 
-    /** Creates the chapter and updates the media's denormalized chapter counters. */
-    public Chapter(Media media, BigDecimal number, String title, String folder, List<PageEntry> pages) {
+    /**
+     * Creates the chapter. The media's denormalized chapter counters are not touched here: callers
+     * run {@link ChapterCounters#recalculate} in the same transaction.
+     *
+     * @param createdAt "chapter added" date; the import time, or the sidecar value on restore
+     */
+    public Chapter(Media media, BigDecimal number, String title, String folder, List<PageEntry> pages, Instant createdAt) {
         this.media = Objects.requireNonNull(media);
         this.number = Objects.requireNonNull(number);
         this.title = title;
         this.folder = Objects.requireNonNull(folder);
+        setPages(pages);
+        this.createdAt = Objects.requireNonNull(createdAt);
+        this.updatedAt = createdAt;
+    }
+
+    /**
+     * Swaps the pages (UPDATE "Replace"). The chapter keeps its id, so users' progress rows stay;
+     * it also keeps {@code created_at}, since it is not a newly added chapter.
+     */
+    public void replacePages(List<PageEntry> pages) {
+        setPages(pages);
+        this.updatedAt = Instant.now();
+    }
+
+    private void setPages(List<PageEntry> pages) {
+        if (pages.isEmpty()) {
+            throw new IllegalArgumentException("a chapter needs at least one page");
+        }
         this.pages = List.copyOf(pages);
         this.pageCount = this.pages.size();
-        this.createdAt = Instant.now();
-        this.updatedAt = this.createdAt;
-        media.chapterAdded(this.createdAt);
     }
 
     @PreUpdate
@@ -92,5 +112,9 @@ public class Chapter extends BaseEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }
