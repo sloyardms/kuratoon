@@ -22,8 +22,10 @@ python -m venv .venv
 .venv/bin/python fixtures/generate/check_deterministic.py       # used by CI
 ```
 
-Generating a case deletes and rebuilds `<out>/<case>/`. Cases not yet implemented raise
-`NotImplementedError("phase 3")` (the CLI exits with code 2).
+Generating a case deletes and rebuilds `<out>/<case>/`.
+
+Backend integration tests read the generated cases from `fixtures/import/` (copied into a temp
+dir per test), so run the generator once before `./mvnw verify`. CI does the same.
 
 ## Font
 

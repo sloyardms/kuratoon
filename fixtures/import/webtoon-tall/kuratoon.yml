@@ -1,0 +1,7 @@
+kuratoon: 1
+kind: manifest
+url: http://fake-manga.test/series/webtoon-tall
+title: Tall Webtoon
+type: webtoon
+language: ko
+artists: [ "Tall Artist" ]

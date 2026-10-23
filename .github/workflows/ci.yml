@@ -32,6 +32,8 @@ jobs:
             backend:
               - *workflows
               - 'backend/**'
+              # Backend integration tests import the generated fixtures.
+              - 'fixtures/**'
             frontend:
               - *workflows
               - 'frontend/**'
@@ -58,8 +60,22 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      # Testcontainers uses the runner's Docker daemon.
+      # libvips CLI for the thumbnail tests (same tool as the runtime image).
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libvips-tools && vips --version
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: fixtures/generate/requirements.txt
+      - name: Generate import fixtures
+        working-directory: .
+        run: |
+          pip install -r fixtures/generate/requirements.txt
+          python fixtures/generate/generate.py
+      # Testcontainers uses the runner's Docker daemon. vips tests must run (not skip) in CI.
       - run: ./mvnw -B verify
+        env:
+          KURATOON_TEST_REQUIRE_VIPS: 'true'
 
   frontend:
     needs: changes

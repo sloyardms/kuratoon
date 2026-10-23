@@ -1,0 +1,6 @@
+kuratoon: 1
+kind: manifest
+url: http://fake-manga.test/series/messy
+title: Messy Series
+type: manga
+authors: [ "Messy Author" ]

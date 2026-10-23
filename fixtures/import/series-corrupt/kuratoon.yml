@@ -1,0 +1,6 @@
+kuratoon: 1
+kind: manifest
+url: http://fake-manga.test/series/corrupt
+title: Corrupt Series
+type: manga
+authors: [ "Corrupt Author" ]

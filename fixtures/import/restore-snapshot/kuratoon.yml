@@ -1,0 +1,28 @@
+kuratoon: 1
+kind: snapshot
+id: 01a20000-0000-7000-8000-000000000001
+url: http://fake-manga.test/series/restored
+plugin: example
+type: manga
+language: en
+adult: false
+title: Restored Series
+titles: [ "Restored (Alt)" ]
+status: COMPLETED
+year: 2021
+description: Restored from a sidecar.
+authors: [ "Restore Author" ]
+artists: [ "Restore Artist" ]
+genres: [ "Drama" ]
+tags: [ "hq" ]
+parodies: []
+characters: []
+locked: [ "title" ]
+cover: { file: cover.jpg, crop: { x: 0.1, y: 0, w: 0.8, h: 0.8 } }
+created_at: 2026-01-05T09:00:00Z
+chapters:
+  - { number: 1, title: "Restored Start", folder: "1", created_at: 2026-01-05T10:00:00Z, pages: [ { f: 0001.jpg, w: 800, h: 1200 }, { f: 0002.jpg, w: 800, h: 1200 }, { f: 0003.jpg, w: 800, h: 1200 } ] }
+  - { number: 2, title: null, folder: "2", created_at: 2026-02-10T10:00:00Z, pages: [ { f: 0001.jpg, w: 800, h: 1200 }, { f: 0002.jpg, w: 800, h: 1200 }, { f: 0003.jpg, w: 800, h: 1200 } ] }
+  - { number: 2.5, title: "Omake", folder: "2.5", created_at: 2026-02-11T10:00:00Z, pages: [ { f: 0001.jpg, w: 800, h: 1200 }, { f: 0002.jpg, w: 800, h: 1200 }, { f: 0003.jpg, w: 800, h: 1200 } ] }
+relations: []
+moments: []

@@ -5,6 +5,10 @@ Thumbs.db
 .vscode/
 *.iml
 
+# Python (fixture generator)
+.venv/
+__pycache__/
+
 # Env
 .env
 deploy/.env
@@ -25,6 +29,8 @@ fixtures/import/**/*.jpg
 fixtures/import/**/*.jpeg
 fixtures/import/**/*.png
 fixtures/import/**/*.webp
+# series-messy chapter folders hold generated pages and junk files only
+fixtures/import/series-messy/*/
 fixtures/large/
 
 # Local runtime data
