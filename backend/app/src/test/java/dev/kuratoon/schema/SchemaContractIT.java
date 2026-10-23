@@ -83,7 +83,7 @@ class SchemaContractIT {
         // Ingestion and fetching
         table("import_job", "id uuid, source_folder text, kind text?, status text, media_id uuid?, plugin_id text?,"
                 + " message text?, detail jsonb?, attempts int4, created_at timestamptz, updated_at timestamptz,"
-                + " finished_at timestamptz?");
+                + " finished_at timestamptz?, committed_at timestamptz?");
         table("domain_session", "domain text, cookies jsonb, user_agent text, expires_at timestamptz,"
                 + " updated_at timestamptz");
     }
@@ -185,6 +185,18 @@ class SchemaContractIT {
         String active = "insert into import_job (id, source_folder, status) values (?, 'a', 'QUEUED')";
         inRolledBackTransaction(finished, active);
         assertThatThrownBy(() -> inRolledBackTransaction(finished, active, active))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void importJobAcceptsEveryLifecycleStatus() {
+        for (String status : List.of("QUEUED", "RESOLVING", "FETCHING_METADATA", "PROCESSING", "DONE",
+                "NEEDS_ATTENTION", "FAILED", "DISMISSED")) {
+            inRolledBackTransaction(
+                    "insert into import_job (id, source_folder, status) values (?, 'a', '" + status + "')");
+        }
+        assertThatThrownBy(() -> inRolledBackTransaction(
+                        "insert into import_job (id, source_folder, status) values (?, 'a', 'BOGUS')"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
