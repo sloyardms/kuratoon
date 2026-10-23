@@ -6,6 +6,7 @@ import dev.kuratoon.creator.Creator;
 import dev.kuratoon.mediatype.MediaType;
 import dev.kuratoon.parody.Parody;
 import dev.kuratoon.tag.Tag;
+import dev.kuratoon.tag.TagKind;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,6 +23,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -187,6 +189,112 @@ public class Media extends BaseEntity {
     public void setChapterCounters(int chapterCount, Instant latestChapterAddedAt) {
         this.chapterCount = chapterCount;
         this.latestChapterAddedAt = latestChapterAddedAt;
+    }
+
+    /** "Added to library" date of a media restored from a sidecar; only valid before it is persisted. */
+    public void restoreCreatedAt(Instant createdAt) {
+        if (!isNew()) {
+            throw new IllegalStateException("created_at is fixed once persisted");
+        }
+        this.createdAt = Objects.requireNonNull(createdAt);
+    }
+
+    public void setTitle(String title) {
+        this.title = Objects.requireNonNull(title);
+    }
+
+    public void setMediaType(MediaType mediaType) {
+        this.mediaType = Objects.requireNonNull(mediaType);
+    }
+
+    public void setLanguage(String language) {
+        this.language = Objects.requireNonNull(language);
+    }
+
+    public void setPluginId(String pluginId) {
+        this.pluginId = pluginId;
+    }
+
+    /** Replaces the locked field set (kept in {@link MediaFields#FIELD_NAMES} order). */
+    public void setLockedFields(Collection<String> fields) {
+        Set<String> wanted = new LinkedHashSet<>(fields);
+        lockedFields = new ArrayList<>(MediaFields.FIELD_NAMES.stream().filter(wanted::contains).toList());
+    }
+
+    public void lockFields(Collection<String> fields) {
+        Set<String> all = new LinkedHashSet<>(lockedFields);
+        all.addAll(fields);
+        setLockedFields(all);
+    }
+
+    public boolean isLocked(String field) {
+        return lockedFields.contains(field);
+    }
+
+    /** New original cover file (and crop): bumps {@code cover_version} for cache busting. */
+    public void setCover(String coverFile, CoverCrop coverCrop) {
+        this.coverFile = coverFile;
+        this.coverCrop = coverCrop;
+        this.coverVersion++;
+    }
+
+    public void setCoverCrop(CoverCrop coverCrop) {
+        this.coverCrop = coverCrop;
+        this.coverVersion++;
+    }
+
+    /** Cover values restored from a sidecar, without bumping the version. */
+    public void restoreCover(String coverFile, CoverCrop coverCrop) {
+        this.coverFile = coverFile;
+        this.coverCrop = coverCrop;
+    }
+
+    /**
+     * Sets the alternative titles. Unchanged titles keep their rows (diffed, not cleared and
+     * re-inserted, because Hibernate flushes inserts before deletes and UNIQUE(media_id, title)
+     * would reject the re-insert).
+     */
+    public void replaceAlternativeTitles(List<String> titles) {
+        Set<String> wanted = new LinkedHashSet<>(titles);
+        wanted.remove(title);
+        alternativeTitles.removeIf(t -> !wanted.contains(t.getTitle()));
+        Set<String> existing = new LinkedHashSet<>();
+        alternativeTitles.forEach(t -> existing.add(t.getTitle()));
+        for (String t : wanted) {
+            if (!existing.contains(t)) {
+                alternativeTitles.add(new MediaTitle(this, t, null));
+            }
+        }
+    }
+
+    /** Sets the creators of one role (diffed like {@link #replaceAlternativeTitles}). */
+    public void replaceCreators(CreatorRole role, List<Creator> wanted) {
+        Set<UUID> wantedIds = new LinkedHashSet<>();
+        wanted.forEach(c -> wantedIds.add(c.getId()));
+        creators.removeIf(mc -> mc.getRole() == role && !wantedIds.contains(mc.getCreator().getId()));
+        Set<UUID> existing = new LinkedHashSet<>();
+        creators.stream().filter(mc -> mc.getRole() == role).forEach(mc -> existing.add(mc.getCreator().getId()));
+        for (Creator c : wanted) {
+            if (existing.add(c.getId())) {
+                creators.add(new MediaCreator(this, c, role));
+            }
+        }
+    }
+
+    /** Sets the tags of one kind; tags of the other kind are kept. */
+    public void replaceTags(TagKind kind, Collection<Tag> wanted) {
+        tags.removeIf(t -> t.getKind() == kind && !wanted.contains(t));
+        tags.addAll(wanted);
+    }
+
+    public void replaceParodies(Collection<Parody> wanted) {
+        parodies.retainAll(wanted);
+        parodies.addAll(wanted);
+    }
+
+    public void replaceCharacters(Collection<StoryCharacter> wanted) {
+        characters.retainAll(wanted);
+        characters.addAll(wanted);
     }
 
     public void setDescription(String description) {

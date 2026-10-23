@@ -99,10 +99,16 @@ public record KuratoonProperties(
         }
     }
 
-    /** Import folder polling and stability detection. */
+    /**
+     * Import folder polling and stability detection.
+     *
+     * @param enabled run startup recovery and the poller in the background (internal; tests turn
+     *     it off and drive the scanner and worker directly)
+     */
     public record ImportPolling(
             @DefaultValue("30s") @NotNull Duration pollInterval,
-            @DefaultValue("60s") @NotNull Duration stableAfter) {}
+            @DefaultValue("60s") @NotNull Duration stableAfter,
+            @DefaultValue("true") boolean enabled) {}
 
     /**
      * libvips CLI used for thumbnails (docs/spec/06-images.md). Internal settings, not installer

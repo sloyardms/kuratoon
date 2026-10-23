@@ -1,6 +1,6 @@
-package dev.kuratoon.ingestion;
+package dev.kuratoon.media;
 
-import dev.kuratoon.media.PublicationStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -63,6 +63,7 @@ public record MediaFields(
     }
 
     /** True when a NEW media can be created without a plugin (docs/spec/02-ingestion.md "Manifest"). */
+    @JsonIgnore
     public boolean isComplete() {
         return title != null && type != null && (!authors.isEmpty() || !artists.isEmpty());
     }
@@ -103,6 +104,11 @@ public record MediaFields(
 
     public MediaFields withTitle(String newTitle) {
         return new MediaFields(newTitle, titles, description, type, language, status, year, adult, authors, artists,
+                genres, tags, parodies, characters);
+    }
+
+    public MediaFields withLanguage(String newLanguage) {
+        return new MediaFields(title, titles, description, type, newLanguage, status, year, adult, authors, artists,
                 genres, tags, parodies, characters);
     }
 

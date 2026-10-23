@@ -1,6 +1,7 @@
 package dev.kuratoon.character;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface StoryCharacterRepository extends JpaRepository<StoryCharacter, UUID> {
+
+    /** The character with this normalized name and parody; {@code parodyId} null means "no parody". */
+    @Query("""
+            select c from StoryCharacter c
+            where c.normalizedName = :normalizedName
+              and (c.parody.id = :parodyId or (:parodyId is null and c.parody is null))
+            """)
+    Optional<StoryCharacter> findByNameAndParody(
+            @Param("normalizedName") String normalizedName, @Param("parodyId") UUID parodyId);
 
     /** Same normalized name with the same parody; {@code parodyId} null means "no parody". */
     @Query("""

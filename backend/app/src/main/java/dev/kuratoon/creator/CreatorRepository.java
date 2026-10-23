@@ -1,5 +1,6 @@
 package dev.kuratoon.creator;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface CreatorRepository extends JpaRepository<Creator, UUID> {
 
     boolean existsByNormalizedName(String normalizedName);
+
+    Optional<Creator> findByNormalizedName(String normalizedName);
 
     boolean existsByNormalizedNameAndIdNot(String normalizedName, UUID id);
 

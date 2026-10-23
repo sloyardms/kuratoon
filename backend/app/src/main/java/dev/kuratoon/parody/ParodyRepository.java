@@ -1,5 +1,6 @@
 package dev.kuratoon.parody;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface ParodyRepository extends JpaRepository<Parody, UUID> {
 
     boolean existsByNormalizedName(String normalizedName);
+
+    Optional<Parody> findByNormalizedName(String normalizedName);
 
     boolean existsByNormalizedNameAndIdNot(String normalizedName, UUID id);
 

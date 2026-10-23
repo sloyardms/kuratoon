@@ -2,7 +2,8 @@ package dev.kuratoon.ingestion;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.kuratoon.chapter.PageEntry;
-import dev.kuratoon.ingestion.MediaFields.CharacterEntry;
+import dev.kuratoon.media.MediaFields;
+import dev.kuratoon.media.MediaFields.CharacterEntry;
 import dev.kuratoon.media.CoverCrop;
 import dev.kuratoon.media.PublicationStatus;
 import dev.kuratoon.media.RelationType;

@@ -21,6 +21,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MockMvcTester.MockMvcRequestBuilder;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
@@ -48,6 +50,17 @@ public abstract class ApiTestBase {
         TestClock testClock() {
             return new TestClock();
         }
+
+        @Bean
+        @Primary
+        TestFaults testFaults() {
+            return new TestFaults();
+        }
+    }
+
+    @DynamicPropertySource
+    static void folders(DynamicPropertyRegistry registry) {
+        TestFolders.register(registry);
     }
 
     @Autowired
@@ -69,6 +82,9 @@ public abstract class ApiTestBase {
     protected AuthRateLimiter rateLimiter;
 
     @Autowired
+    protected TestFaults faults;
+
+    @Autowired
     private DatabaseCleaner cleaner;
 
     /** The admin created for each test; the default caller. */
@@ -81,6 +97,8 @@ public abstract class ApiTestBase {
         cleaner.clean();
         rateLimiter.reset();
         clock.reset();
+        faults.reset();
+        TestFolders.reset();
         admin = data.aUser("admin", Role.ADMIN);
         as(admin);
     }

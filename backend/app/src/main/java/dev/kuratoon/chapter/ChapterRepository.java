@@ -19,6 +19,10 @@ public interface ChapterRepository extends JpaRepository<Chapter, UUID> {
             """)
     List<ChapterSummary> findSummariesByMediaId(@Param("mediaId") UUID mediaId);
 
+    /** Full chapters (with pages) of a media, ascending. */
+    @Query("select c from Chapter c where c.media.id = :mediaId order by c.number")
+    List<Chapter> findByMediaIdOrdered(@Param("mediaId") UUID mediaId);
+
     @Query("select c.number from Chapter c where c.media.id = :mediaId")
     List<BigDecimal> findNumbersByMediaId(@Param("mediaId") UUID mediaId);
 }

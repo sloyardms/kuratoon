@@ -1,5 +1,6 @@
 package dev.kuratoon.tag;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface TagRepository extends JpaRepository<Tag, UUID> {
 
     boolean existsByKindAndSlug(TagKind kind, String slug);
+
+    Optional<Tag> findByKindAndSlug(TagKind kind, String slug);
 
     boolean existsByKindAndSlugAndIdNot(TagKind kind, String slug, UUID id);
 
