@@ -35,7 +35,8 @@ Mapping rules in the core:
   value, else NEEDS_ATTENTION ("choose a type").
 - Missing `language` → manifest value, else `DEFAULT_LANGUAGE` env (default `en`).
 - Creators/tags/parodies/characters are matched by normalized name, created if missing
-  (GENRE kind for scraped genres).
+  (GENRE kind for scraped genres). A tag whose name slugifies to an empty string (e.g. non-Latin
+  names) gets the slug `t-<hex>`, a hash of its normalized name.
 
 ## Loading
 

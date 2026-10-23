@@ -274,6 +274,7 @@ Index on (chapter_id, status), (status, created_at).
 | attempts | int NOT NULL default 0 | |
 | created_at, updated_at | timestamptz | |
 | finished_at | timestamptz NULL | |
+| committed_at | timestamptz NULL | set in the commit transaction (02 "Commit order"); startup recovery rolls committed jobs forward |
 
 Index on (status, created_at). At most one non-finished job per source_folder
 (partial unique index).

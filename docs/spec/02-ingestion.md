@@ -90,6 +90,10 @@ from them) instead of the restore time.
 
 Write atomically: write to `kuratoon.yml.tmp`, fsync, rename.
 
+The debounce is in memory, so a pending write can be lost on shutdown or crash. On startup, before
+polling starts, the app rewrites the sidecar of every media whose `updated_at` is newer than the
+sidecar file's modification time, or whose sidecar is missing.
+
 ## Job lifecycle
 
 ```
@@ -105,7 +109,8 @@ NEEDS_ATTENTION / FAILED → DISMISSED (admin action; finished)
 - `PROCESSING`: validate images, copy files, write DB, generate thumbnails, write sidecar.
 - `NEEDS_ATTENTION`: a decision is needed. `message` explains it; `detail` holds the data.
 - `FAILED`: technical failure. Retry button re-runs from the start.
-- `DISMISSED`: the admin dismissed the job (only from `NEEDS_ATTENTION` or `FAILED`). It is
+- `DISMISSED`: the admin dismissed the job (only from `NEEDS_ATTENTION` or `FAILED`, and never
+  once `committed_at` is set: that returns 409, and Retry finishes the job instead). It is
   finished (`finished_at` set). Dismiss renames the source folder in `/import` to
   `.dismissed-<name>-<jobId>`, so the poller (which ignores folders starting with `.`) does not
   pick it up again. The job id makes the name unique, so it never collides. To re-import, the
@@ -122,6 +127,7 @@ Choose plugin, Resolve conflict, Dismiss.
 - A folder is ready when its total file count and total size are unchanged for
   `IMPORT_STABLE_SECONDS` (default 60).
 - Ignore folders starting with `.` and folders already owned by a non-finished job.
+- Stability observations are kept in memory: after a restart, the window starts again.
 
 ## Resolution: NEW vs UPDATE vs RESTORE
 
@@ -192,7 +198,8 @@ Canonical chapter folder in the library: the number without trailing zeros (`12`
 - New chapter numbers are appended.
 - A chapter number that already exists → NEEDS_ATTENTION with options: Skip, Replace.
   Replace swaps the pages but keeps users' progress rows; any `page_index` now out of range is
-  clamped to the last page, and its `page_offset` is reset to 0.
+  clamped to the last page, and its `page_offset` is reset to 0. The replaced chapter keeps its
+  `created_at` (it is not a newly added chapter); only `updated_at` changes.
 - Metadata is refreshed on UPDATE only for unlocked fields, and only if the admin enabled
   "refresh metadata on update" for the job (default: off).
 
@@ -228,8 +235,10 @@ On startup (before polling starts):
   ends DONE. If the job is committed but its staging dir is gone and the library folder is
   incomplete, the job goes to NEEDS_ATTENTION with an explanation.
 - PROCESSING jobs without `committed_at` are marked FAILED and their staging is deleted.
-- Leftover `/library/.staging/*` whose job is not in PROCESSING, and leftover
-  `/import/.imported-*` folders, are deleted.
+- RESOLVING and FETCHING_METADATA jobs are re-queued (QUEUED): resolution has no side effects.
+- Leftover `/library/.staging/*` are deleted, except the staging of a committed job that is
+  waiting for Retry (NEEDS_ATTENTION after a failed finish), which Retry still needs. Leftover
+  `/import/.imported-*` folders are deleted.
 
 ## Cover
 

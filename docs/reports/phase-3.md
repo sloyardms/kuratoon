@@ -9,8 +9,8 @@
   - the `.imported-<name>-<jobId>` rename before deleting the source;
   - RESTORE whose url belongs to another media → NEEDS_ATTENTION.
 
-  The paragraph on the startup rewrite of stale sidecars is **not** in spec 02: the permission
-  classifier blocked that edit (see Open questions).
+  The paragraph on the startup rewrite of stale sidecars was blocked during commit 0 and added
+  afterwards in its own docs commit, at the owner's request.
 - **Schema**: `V7__import_job_dismissed_committed.sql` widens the `import_job` status CHECK
   with `DISMISSED` and adds `committed_at timestamptz NULL`.
 - **Chapter counters** (roadmap note):
@@ -121,11 +121,6 @@
   to refresh from. UPDATE never changes metadata in this phase.
 - **02 / Imports actions, "Choose plugin"**: deferred to phase 4. The NO_PLUGIN state it will
   use is already there.
-- **02 / UPDATE Replace**: the replaced chapter keeps its `created_at` (it is not a new chapter)
-  and only `updated_at` changes. The spec does not say.
-- **02 / Startup**: jobs interrupted in RESOLVING or FETCHING_METADATA are re-queued (resolution
-  has no side effects). The spec only covers PROCESSING. Staging dirs of committed jobs waiting
-  for Retry (NEEDS_ATTENTION after a failed finish) are kept, since Retry needs them.
 - **02 / RESTORE relations**: a snapshot relation to a media that is not in the library is
   dropped with a warning on a single RESTORE import. "Rebuild library from disk" restores every
   missing media first, then all relations between them.
@@ -135,18 +130,13 @@
 - **02 / sidecar fsync**: the file is fsynced before the rename; the directory is not.
 
 ## Spec files that may need updating
-- **01 / `import_job`**: the column list lacks `committed_at` (added by V7 as the owner decided).
-- **02 / Sidecar snapshot**: the startup rewrite of stale sidecars (owner decision) is
-  implemented, but its paragraph could not be added (blocked edit).
-- **02 / Replace**: whether the chapter keeps its `created_at` (implemented: yes).
-- **02 / Startup**: re-queuing interrupted RESOLVING jobs; keeping the staging of committed jobs
-  that wait for Retry.
-- **02 / Dismiss**: a job whose import was already committed cannot be dismissed (409, "press
-  Retry to finish it"). Otherwise dismissing it would leave rows without a library folder.
-- **02 / Folder detection**: stability observations are in memory, so after a restart the window
-  starts again. That seems intended, but it is not written down.
-- **03 / Mapping rules**: non-Latin genre/tag names get a hash-based slug (`t-<hex>`), because
-  `Slugs.slugify` returns "" for them and tags need a slug.
+- None open. After the phase review, the owner authorized spec edits for every item that was
+  listed here. They are in the docs commit after the report:
+  - 01: `import_job.committed_at`.
+  - 02: the startup rewrite of stale sidecars; no Dismiss once committed (409, Retry finishes
+    it); Replace keeps `created_at`; RESOLVING/FETCHING jobs re-queued at startup; staging kept
+    for committed jobs that wait for Retry; the stability window restarts after a restart.
+  - 03: the `t-<hex>` slug for tags whose name slugifies to "".
 
 ## Tests
 - Added (backend unit):
@@ -218,12 +208,7 @@
   and the shared helpers.
 
 ## Open questions for the owner
-- The spec 02 paragraph on the startup rewrite of stale sidecars was blocked by a permission
-  classifier during commit 0. Should I add it (one paragraph under "Sidecar snapshot"), or will
-  you?
-- Should `01-data-model.md` list `import_job.committed_at`?
-- Should Dismiss be allowed for a committed job (for example to give up on a half-finished
-  import), and if so what should happen to its rows?
+- None. Dismissing a committed job is not allowed (now in spec 02).
 
 ## How to verify manually
 1. `docker compose -f deploy/docker-compose.dev.yml up -d`, then
