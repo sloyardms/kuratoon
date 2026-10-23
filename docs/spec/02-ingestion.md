@@ -27,8 +27,9 @@ The folder name is irrelevant to identity; it is only a fallback title.
 
 ## Manifest (`kuratoon.yml`, written by a person)
 
-All fields optional except that at least one of `url` or a `source.html` file must exist, unless
-the admin later fills metadata manually.
+All fields optional. Without a `url` or a `source.html` file, the manifest must itself contain
+complete metadata (title, `type`, at least one author or artist; `language` falls back to
+`DEFAULT_LANGUAGE`), or the admin fills metadata manually.
 
 ```yaml
 kuratoon: 1            # schema version
@@ -125,7 +126,8 @@ Choose plugin, Resolve conflict, Dismiss.
 ## Resolution: NEW vs UPDATE vs RESTORE
 
 1. If `kuratoon.yml` has `kind: snapshot` → **RESTORE**. If a media with that `id` already exists,
-   NEEDS_ATTENTION ("already in library").
+   NEEDS_ATTENTION ("already in library"). If the snapshot's `url` is the `source_url` of a
+   different existing media, NEEDS_ATTENTION ("URL belongs to another media").
 2. Else determine the URL (manifest `url`, else `source.txt`, else canonical URL from
    `source.html` — see plugins spec). Normalize it (lowercase host, strip fragment and tracking
    params, no trailing slash).
@@ -133,8 +135,9 @@ Choose plugin, Resolve conflict, Dismiss.
 4. Else → **NEW**. Before creating, run duplicate detection: same normalized title (or alt title)
    and same media type → NEEDS_ATTENTION with the candidate, admin chooses "Update existing" or
    "Create new".
-5. No URL, no HTML, no snapshot → NEEDS_ATTENTION ("no metadata source"); admin may fill metadata
-   manually.
+5. No URL, no HTML, no snapshot: if the manifest has complete metadata (see "Manifest") →
+   **NEW** with `source_url` NULL (duplicate detection still runs). Otherwise NEEDS_ATTENTION
+   ("no metadata source"); admin may fill metadata manually.
 
 ## Structure detection
 
@@ -189,7 +192,7 @@ Canonical chapter folder in the library: the number without trailing zeros (`12`
 - New chapter numbers are appended.
 - A chapter number that already exists → NEEDS_ATTENTION with options: Skip, Replace.
   Replace swaps the pages but keeps users' progress rows; any `page_index` now out of range is
-  clamped to the last page.
+  clamped to the last page, and its `page_offset` is reset to 0.
 - Metadata is refreshed on UPDATE only for unlocked fields, and only if the admin enabled
   "refresh metadata on update" for the job (default: off).
 
@@ -208,13 +211,25 @@ Canonical chapter folder in the library: the number without trailing zeros (`12`
 
 1. Copy files from `/import/<folder>` into a staging dir `/library/.staging/<jobId>/`.
 2. Validate everything in staging.
-3. In one DB transaction: create/update media, chapters, tags, creators, etc.
-4. Move staging into place (rename within the same filesystem).
+3. In one DB transaction: create/update media, chapters, tags, creators, etc., and set the job's
+   `committed_at`.
+4. Move staging into place (rename within the same filesystem). For UPDATE, each new chapter
+   folder is moved separately. Replace swaps safely: rename the old chapter folder to a backup
+   inside staging, move the new one in, delete the backup.
 5. Generate thumbnails, write sidecar.
-6. Delete the source folder from `/import`.
+6. Rename the source folder to `/import/.imported-<name>-<jobId>` (ignored by the poller), then
+   delete it. A failed delete never causes a re-import.
 
-On startup, delete leftover `/library/.staging/*` whose job is not in PROCESSING, and mark
-PROCESSING jobs as FAILED.
+Steps 4–6 are idempotent: the move only moves what is not in place yet, a half-done Replace swap
+is completed, and thumbnails, sidecar and source delete can re-run safely.
+
+On startup (before polling starts):
+- PROCESSING jobs with `committed_at` are **rolled forward**: steps 4–6 are completed and the job
+  ends DONE. If the job is committed but its staging dir is gone and the library folder is
+  incomplete, the job goes to NEEDS_ATTENTION with an explanation.
+- PROCESSING jobs without `committed_at` are marked FAILED and their staging is deleted.
+- Leftover `/library/.staging/*` whose job is not in PROCESSING, and leftover
+  `/import/.imported-*` folders, are deleted.
 
 ## Cover
 
