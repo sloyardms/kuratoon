@@ -2,6 +2,7 @@ package dev.kuratoon.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import dev.kuratoon.chapter.Chapter;
 import dev.kuratoon.chapter.ChapterRepository;
@@ -172,6 +173,8 @@ class CrashRecoveryIT extends ImportTestBase {
 
     @Test
     void failedSourceDeleteNeverCausesAReimport() throws Exception {
+        // root ignores directory permissions, so the delete cannot be made to fail.
+        assumeFalse("root".equals(System.getProperty("user.name")), "needs a non-root user");
         Path source = copyFixture("series-basic");
         writeManifest(source, BASIC_COMPLETE);
         Path locked = source.resolve("Chapter 0 - Prologue");
