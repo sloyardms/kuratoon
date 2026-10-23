@@ -17,8 +17,12 @@ public final class MediaAdminDtos {
     public record MediaRow(
             UUID id, String title, MediaTypeRef type, int chapterCount, Instant latestChapterAddedAt, Instant createdAt) {}
 
-    /** @param width/height of the original cover, for the crop tool; 0 when unreadable */
-    public record CoverView(String file, CoverCrop crop, int version, int width, int height, boolean thumbnails) {}
+    /**
+     * @param width/height of the original cover, for the crop tool; 0 when unreadable
+     * @param originalUrl the original for the admin crop tool (versioned), null without a cover
+     */
+    public record CoverView(
+            String file, CoverCrop crop, int version, int width, int height, boolean thumbnails, String originalUrl) {}
 
     /**
      * @param direction OUTGOING: stored on this media ({@code mediaId} is a {@code type} of this);

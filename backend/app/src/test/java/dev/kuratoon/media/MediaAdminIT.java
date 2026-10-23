@@ -59,6 +59,8 @@ class MediaAdminIT extends ImportTestBase {
             assertThat(json).extractingPath("$.lockedFields").asArray().containsExactly("title", "type", "authors");
             assertThat(json).extractingPath("$.cover.file").isEqualTo("cover.jpg");
             assertThat(json).extractingPath("$.cover.width").isEqualTo(800);
+            assertThat(json).extractingPath("$.cover.originalUrl").isEqualTo(
+                    "/api/v1/admin/media/" + mediaId + "/cover/original?v=1");
             assertThat(json).extractingPath("$.chapters").asArray().hasSize(6);
         });
     }

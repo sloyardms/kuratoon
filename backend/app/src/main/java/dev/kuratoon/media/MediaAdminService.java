@@ -382,7 +382,7 @@ public class MediaAdminService {
 
     private CoverView cover(Media m) {
         if (m.getCoverFile() == null) {
-            return new CoverView(null, null, m.getCoverVersion(), 0, 0, false);
+            return new CoverView(null, null, m.getCoverVersion(), 0, 0, false, null);
         }
         int w = 0;
         int h = 0;
@@ -394,7 +394,8 @@ public class MediaAdminService {
             // Reported by the integrity scan.
         }
         return new CoverView(m.getCoverFile(), m.getCoverCrop(), m.getCoverVersion(), w, h,
-                thumbnails.coverThumbsExist(m.getId()));
+                thumbnails.coverThumbsExist(m.getId()),
+                "/api/v1/admin/media/" + m.getId() + "/cover/original?v=" + m.getCoverVersion());
     }
 
     private MediaEditView view(Media m) {
