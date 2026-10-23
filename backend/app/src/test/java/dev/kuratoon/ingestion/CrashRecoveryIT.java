@@ -39,6 +39,9 @@ class CrashRecoveryIT extends ImportTestBase {
     @Autowired
     ChapterRepository chapterRepository;
 
+    @Autowired
+    LibraryMaintenanceService maintenance;
+
     @ParameterizedTest
     @EnumSource(value = Step.class, names = {"AFTER_COPY", "AFTER_VALIDATE", "IN_TRANSACTION"})
     void crashBeforeCommitLeavesNoPartialLibraryFolder(Step step) {
@@ -238,6 +241,13 @@ class CrashRecoveryIT extends ImportTestBase {
         assertThat(dir.resolve(cover)).isRegularFile();
         assertThat(listNames(paths.stagingRoot())).isEmpty();
         assertThat(listNames(TestFolders.IMPORT)).isEmpty();
+        LibraryMaintenanceService.IntegrityReport report = maintenance.scan();
+        assertThat(report.foldersWithoutRows()).isEmpty();
+        assertThat(report.rowsWithoutFolders()).isEmpty();
+        assertThat(report.missingPages()).isEmpty();
+        if (vipsAvailable()) {
+            assertThat(report.clean()).isTrue();
+        }
     }
 
     /** Makes the folder's contents undeletable (POSIX: no write on the dir; Windows: read-only files). */

@@ -286,6 +286,33 @@ public class ImportResolver {
 
     // --- RESTORE --------------------------------------------------------------------------------
 
+    /**
+     * RESTORE planning for a folder already in /library ("Rebuild library from disk"): the same
+     * checks as a RESTORE import. Empty when the folder has no snapshot sidecar.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Outcome> planRestore(Path mediaDir) {
+        Path yml = mediaDir.resolve(KuratoonYaml.FILE_NAME);
+        if (!Files.isRegularFile(yml)) {
+            return Optional.empty();
+        }
+        Context ctx = new Context(null, mediaDir);
+        try {
+            if (!(KuratoonYaml.parse(Files.readString(yml, StandardCharsets.UTF_8)) instanceof SnapshotDocument s)) {
+                return Optional.empty();
+            }
+            if (!s.id().toString().equals(mediaDir.getFileName().toString())) {
+                return Optional.of(ctx.attention(Attention.INVALID_MANIFEST,
+                        "The sidecar id " + s.id() + " does not match the folder name."));
+            }
+            return Optional.of(resolveRestore(ctx, s));
+        } catch (InvalidDocumentException e) {
+            return Optional.of(ctx.attention(Attention.INVALID_MANIFEST, e.getMessage()));
+        } catch (IOException e) {
+            return Optional.of(new Failed("Cannot read " + yml + ": " + e.getMessage()));
+        }
+    }
+
     private Outcome resolveRestore(Context ctx, SnapshotDocument s) throws IOException {
         ctx.kind = ImportKind.RESTORE;
         for (SnapshotChapter c : s.chapters()) {
@@ -456,7 +483,8 @@ public class ImportResolver {
         }
 
         JobDetail detail(Attention attention) {
-            return job.detail().resolved(attention, url, rows, warnings, missing, prefill, conflicts, duplicate);
+            JobDetail base = job == null ? JobDetail.EMPTY : job.detail();
+            return base.resolved(attention, url, rows, warnings, missing, prefill, conflicts, duplicate);
         }
 
         NeedsAttention attention(Attention reason, String message) {

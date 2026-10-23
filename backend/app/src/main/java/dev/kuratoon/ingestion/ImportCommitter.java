@@ -70,35 +70,19 @@ public class ImportCommitter {
         this.clock = clock;
     }
 
+    /** Rows written for a plan. */
+    private record Written(Media media, List<String> folders, List<String> replaced) {}
+
     /** @return the media id */
     @Transactional
     public UUID commit(UUID jobId, ImportPlan plan) {
         ImportJob job = jobs.findById(jobId).orElseThrow(() -> new NotFoundException("Import job not found."));
         Instant now = clock.instant();
         List<String> warnings = new ArrayList<>();
-        Media m = switch (plan.kind()) {
-            case NEW -> createNew(plan);
-            case RESTORE -> restore(plan, warnings);
-            case UPDATE -> media.findById(plan.targetMediaId())
-                    .orElseThrow(() -> new NotFoundException("The media to update no longer exists."));
-        };
-
-        List<String> folders = new ArrayList<>();
-        List<String> replaced = new ArrayList<>();
-        for (PlannedChapter c : plan.chapters()) {
-            List<PageEntry> pages = c.pages().stream().map(p -> new PageEntry(p.target(), p.width(), p.height())).toList();
-            folders.add(c.folder());
-            if (c.replaces() != null) {
-                Chapter existing = chapters.findById(c.replaces())
-                        .orElseThrow(() -> new NotFoundException("The chapter to replace no longer exists."));
-                existing.replacePages(pages);
-                clampProgress(existing.getId(), pages.size());
-                replaced.add(c.folder());
-            } else {
-                chapters.save(new Chapter(m, c.number(), c.title(), c.folder(), pages, c.createdAt() != null ? c.createdAt() : now));
-            }
-        }
-        counters.recalculate(m);
+        Written written = writeRows(plan, now, warnings);
+        Media m = written.media();
+        List<String> folders = written.folders();
+        List<String> replaced = written.replaced();
 
         if (plan.kind() == ImportKind.RESTORE) {
             restoreRelations(m, plan.snapshot().relations(), warnings);
@@ -123,6 +107,53 @@ public class ImportCommitter {
         audit.record("IMPORT_COMMITTED", "import_job", jobId, details);
         faults.checkpoint(Step.IN_TRANSACTION);
         return m.getId();
+    }
+
+    /**
+     * "Rebuild library from disk": the rows of a RESTORE plan for a folder already in /library.
+     * Relations are restored separately, once every missing media exists.
+     */
+    @Transactional
+    public UUID restoreFromLibrary(ImportPlan plan, List<String> warnings) {
+        if (plan.kind() != ImportKind.RESTORE) {
+            throw new IllegalArgumentException("not a restore plan");
+        }
+        UUID id = writeRows(plan, clock.instant(), warnings).media().getId();
+        audit.record("MEDIA_REBUILT", "media", id, Map.of("chapters", plan.chapters().size()));
+        return id;
+    }
+
+    /** Restores the snapshot relations between media that both exist. */
+    @Transactional
+    public void restoreRelations(UUID fromId, List<SnapshotRelation> wanted, List<String> warnings) {
+        media.findById(fromId).ifPresent(from -> restoreRelations(from, wanted, warnings));
+    }
+
+    private Written writeRows(ImportPlan plan, Instant now, List<String> warnings) {
+        Media m = switch (plan.kind()) {
+            case NEW -> createNew(plan);
+            case RESTORE -> restore(plan, warnings);
+            case UPDATE -> media.findById(plan.targetMediaId())
+                    .orElseThrow(() -> new NotFoundException("The media to update no longer exists."));
+        };
+
+        List<String> folders = new ArrayList<>();
+        List<String> replaced = new ArrayList<>();
+        for (PlannedChapter c : plan.chapters()) {
+            List<PageEntry> pages = c.pages().stream().map(p -> new PageEntry(p.target(), p.width(), p.height())).toList();
+            folders.add(c.folder());
+            if (c.replaces() != null) {
+                Chapter existing = chapters.findById(c.replaces())
+                        .orElseThrow(() -> new NotFoundException("The chapter to replace no longer exists."));
+                existing.replacePages(pages);
+                clampProgress(existing.getId(), pages.size());
+                replaced.add(c.folder());
+            } else {
+                chapters.save(new Chapter(m, c.number(), c.title(), c.folder(), pages, c.createdAt() != null ? c.createdAt() : now));
+            }
+        }
+        counters.recalculate(m);
+        return new Written(m, folders, replaced);
     }
 
     private Media createNew(ImportPlan plan) {
