@@ -173,8 +173,13 @@ class CrashRecoveryIT extends ImportTestBase {
 
     @Test
     void failedSourceDeleteNeverCausesAReimport() throws Exception {
-        // root ignores directory permissions, so the delete cannot be made to fail.
-        assumeFalse("root".equals(System.getProperty("user.name")), "needs a non-root user");
+        // root ignores directory permissions, so the delete cannot be made to fail. With
+        // KURATOON_TEST_REQUIRE_NONROOT=true (set in CI) running as root fails instead of skipping.
+        boolean root = "root".equals(System.getProperty("user.name"));
+        if (root && "true".equalsIgnoreCase(System.getenv("KURATOON_TEST_REQUIRE_NONROOT"))) {
+            throw new AssertionError("KURATOON_TEST_REQUIRE_NONROOT=true but the tests run as root");
+        }
+        assumeFalse(root, "needs a non-root user");
         Path source = copyFixture("series-basic");
         writeManifest(source, BASIC_COMPLETE);
         Path locked = source.resolve("Chapter 0 - Prologue");

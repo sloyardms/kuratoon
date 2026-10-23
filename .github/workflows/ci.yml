@@ -77,6 +77,10 @@ jobs:
       - run: ./mvnw -B verify
         env:
           KURATOON_TEST_REQUIRE_VIPS: 'true'
+          KURATOON_TEST_REQUIRE_NONROOT: 'true'
+      - name: Test summary
+        if: always()
+        run: python3 ../.github/scripts/test-summary.py . >> "$GITHUB_STEP_SUMMARY"
 
   frontend:
     needs: changes

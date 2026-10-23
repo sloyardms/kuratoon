@@ -188,7 +188,12 @@
   - Playwright against a locally built compose stack (`auth.spec.ts`, `imports.spec.ts`): 2
     passed. The run also showed the container's libvips writing the three cover WebPs, the
     sidecar, the library layout and the removed source folder.
-  - GitHub Actions has not run yet (nothing pushed).
+  - GitHub Actions [run #9](https://github.com/sloyardms/kuratoon/actions/runs/39911263882) on
+    `ce843c4`: all five jobs green. In the backend job's log (confirmed by the owner)
+    `CrashRecoveryIT` ran 15 tests with 0 skipped, so the delete-failure test really ran on the
+    non-root runner. Since then CI guards this: with `KURATOON_TEST_REQUIRE_NONROOT=true` the test
+    fails instead of skipping when run as root. A test summary (run/failed/skipped per module, plus
+    every skipped test by name) is written to the backend job's `$GITHUB_STEP_SUMMARY`.
 
 ## Known issues and shortcuts
 - The commit split is coarser than planned. Scanner, resolver, staging, commit, move, sidecar
