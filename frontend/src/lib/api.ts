@@ -55,7 +55,12 @@ function isAuthEndpoint(path: string): boolean {
 
 async function send(path: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers);
-  if (init.body !== undefined && !headers.has("Content-Type")) {
+  // FormData (uploads) sets its own multipart boundary.
+  if (
+    init.body !== undefined &&
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
   return fetch(path, { ...init, headers, credentials: "include" });

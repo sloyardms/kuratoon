@@ -37,6 +37,9 @@ async function logOut(everywhere: boolean) {
 }
 
 const ADMIN_LINKS = [
+  { href: "/admin/imports", label: "Imports" },
+  { href: "/admin/media", label: "Media" },
+  { href: "/admin/maintenance", label: "Maintenance" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/settings", label: "Settings" },
   { href: "/admin/audit-log", label: "Audit log" },

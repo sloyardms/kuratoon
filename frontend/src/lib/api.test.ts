@@ -35,6 +35,16 @@ describe("apiFetch", () => {
     );
   });
 
+  it("sets JSON content type for bodies but not for uploads", async () => {
+    fetchMock.mockImplementation(async () => json(200, {}));
+    await apiFetch("/api/v1/x", { method: "POST", body: "{}" });
+    await apiFetch("/api/v1/y", { method: "POST", body: new FormData() });
+    const headers = fetchMock.mock.calls.map(([, init]) =>
+      new Headers(init?.headers).get("Content-Type"),
+    );
+    expect(headers).toEqual(["application/json", null]);
+  });
+
   it("refreshes once for many concurrent 401s and retries each request once", async () => {
     let refreshed = false;
     let refreshCalls = 0;
