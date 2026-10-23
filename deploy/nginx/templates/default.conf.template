@@ -83,6 +83,12 @@ server {
         return 429 '{"type":"about:blank","title":"Too Many Requests","status":429,"detail":"Too many attempts. Try again later."}';
     }
 
+    # The only upload in v1: a replacement cover (admin).
+    location ~ ^/api/v1/admin/media/[0-9a-f-]+/cover$ {
+        client_max_body_size 10m;
+        proxy_pass http://kuratoon_backend;
+    }
+
     location /api/ {
         proxy_pass http://kuratoon_backend;
     }

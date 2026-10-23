@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -137,6 +138,11 @@ public abstract class ApiTestBase {
 
     protected MvcTestResult delete(String uri, Object... vars) {
         return auth(mvc.delete().uri(uri, vars)).exchange();
+    }
+
+    /** Multipart POST with one file part. */
+    protected MvcTestResult upload(String uri, MockMultipartFile file) {
+        return auth(mvc.post().uri(uri)).multipart().file(file).exchange();
     }
 
     /** POSTs, asserts 201 and returns the created resource id. */

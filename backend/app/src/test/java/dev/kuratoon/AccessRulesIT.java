@@ -20,7 +20,8 @@ class AccessRulesIT extends ApiTestBase {
         "/api/v1/admin/settings",
         "/api/v1/admin/status",
         "/api/v1/admin/audit-log",
-        "/api/v1/admin/imports"
+        "/api/v1/admin/imports",
+        "/api/v1/admin/media"
     })
     void adminEndpointsNeedAnAdmin(String path) {
         asAnonymous();
