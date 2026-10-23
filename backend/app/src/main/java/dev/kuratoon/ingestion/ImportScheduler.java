@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * a time on a single thread.
  */
 @Component
-class ImportScheduler {
+public class ImportScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(ImportScheduler.class);
 
@@ -52,6 +52,21 @@ class ImportScheduler {
         });
         executor.scheduleWithFixedDelay(this::poll, 0, interval.toMillis(), TimeUnit.MILLISECONDS);
         log.info("Import polling every {} s", interval.toSeconds());
+    }
+
+    /** Processes queued jobs now (after an admin action) instead of at the next poll. */
+    public void trigger() {
+        if (enabled && !executor.isShutdown()) {
+            executor.execute(this::processQueued);
+        }
+    }
+
+    private void processQueued() {
+        try {
+            worker.processAll();
+        } catch (RuntimeException e) {
+            log.error("Import processing failed", e);
+        }
     }
 
     private void poll() {

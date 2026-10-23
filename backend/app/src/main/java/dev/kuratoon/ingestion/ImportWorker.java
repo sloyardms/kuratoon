@@ -85,6 +85,11 @@ public class ImportWorker {
     private void run(UUID jobId) {
         try {
             ImportJob job = tx.execute(s -> jobs.findById(jobId).orElseThrow());
+            if (job.getCommittedAt() != null) {
+                // Retry of a job saved earlier: finish it, never resolve it again.
+                finishCommitted(jobId);
+                return;
+            }
             Outcome outcome = resolver.resolve(job);
             switch (outcome) {
                 case Failed f -> update(jobId, j -> j.moveTo(ImportStatus.FAILED, f.message(), clock.instant()));

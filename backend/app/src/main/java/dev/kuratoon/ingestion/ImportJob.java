@@ -64,13 +64,14 @@ public class ImportJob extends BaseEntity {
         this.updatedAt = now;
     }
 
-    /** RESOLVING → … : a new attempt starts from the source folder. */
+    /**
+     * A new attempt: RESOLVING from the source folder, or PROCESSING for a job that was already
+     * committed (it only needs steps 4–6 finished).
+     */
     public void startAttempt(Instant now) {
-        status = ImportStatus.RESOLVING;
+        status = committedAt != null ? ImportStatus.PROCESSING : ImportStatus.RESOLVING;
         attempts++;
         message = null;
-        committedAt = null;
-        detail = detail().withCommit(null);
         updatedAt = now;
     }
 
