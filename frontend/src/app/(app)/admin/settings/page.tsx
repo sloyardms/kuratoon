@@ -133,6 +133,14 @@ export default function SettingsPage() {
               </dd>
               <dt className="text-muted-foreground">Image access</dt>
               <dd>{status.data.imageAccess.toLowerCase()}</dd>
+              <dt className="text-muted-foreground">libvips</dt>
+              <dd>
+                {status.data.versions.vips ?? (
+                  <span className="text-destructive">
+                    Unavailable: thumbnails cannot be generated
+                  </span>
+                )}
+              </dd>
               <dt className="text-muted-foreground">Versions</dt>
               <dd>
                 Kuratoon {status.data.versions.app} · Java{" "}

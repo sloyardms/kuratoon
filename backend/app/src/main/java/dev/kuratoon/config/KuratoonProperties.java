@@ -48,6 +48,10 @@ public record KuratoonProperties(
 
         @DefaultValue
         @Valid
+        Images images,
+
+        @DefaultValue
+        @Valid
         Admin admin,
 
         @DefaultValue
@@ -99,6 +103,17 @@ public record KuratoonProperties(
     public record ImportPolling(
             @DefaultValue("30s") @NotNull Duration pollInterval,
             @DefaultValue("60s") @NotNull Duration stableAfter) {}
+
+    /**
+     * libvips CLI used for thumbnails (docs/spec/06-images.md). Internal settings, not installer
+     * environment variables.
+     *
+     * @param vipsBinary {@code vips} executable, resolved from PATH by default
+     * @param commandTimeout limit per vips invocation; the process is killed after it
+     */
+    public record Images(
+            @DefaultValue("vips") @NotBlank String vipsBinary,
+            @DefaultValue("60s") @NotNull Duration commandTimeout) {}
 
     /** Origin ({@code scheme://host[:port]}) of {@link #appBaseUrl()}: the only supported access URL. */
     public String appOrigin() {

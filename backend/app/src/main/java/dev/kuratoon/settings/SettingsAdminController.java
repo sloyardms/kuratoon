@@ -3,6 +3,7 @@ package dev.kuratoon.settings;
 import dev.kuratoon.audit.AuditService;
 import dev.kuratoon.auth.MailStatus;
 import dev.kuratoon.config.KuratoonProperties;
+import dev.kuratoon.image.VipsRunner;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
@@ -38,6 +39,7 @@ class SettingsAdminController {
     private final KuratoonProperties properties;
     private final JdbcClient jdbc;
     private final ObjectProvider<BuildProperties> build;
+    private final VipsRunner vips;
 
     SettingsAdminController(
             AppSettings settings,
@@ -45,13 +47,15 @@ class SettingsAdminController {
             MailStatus mail,
             KuratoonProperties properties,
             JdbcClient jdbc,
-            ObjectProvider<BuildProperties> build) {
+            ObjectProvider<BuildProperties> build,
+            VipsRunner vips) {
         this.settings = settings;
         this.audit = audit;
         this.mail = mail;
         this.properties = properties;
         this.jdbc = jdbc;
         this.build = build;
+        this.vips = vips;
     }
 
     record SettingsResponse(boolean registrationEnabled, boolean momentSubmissionsEnabled) {}
@@ -62,7 +66,8 @@ class SettingsAdminController {
 
     record SolverStatus(boolean configured, boolean reachable) {}
 
-    record Versions(String app, String java, String springBoot, String postgres) {}
+    /** @param vips {@code vips --version}, or null when libvips is not available (no thumbnails) */
+    record Versions(String app, String java, String springBoot, String postgres, String vips) {}
 
     /** @param plugins loaded metadata plugins; empty until plugin loading exists (phase 4) */
     record StatusResponse(
@@ -105,7 +110,8 @@ class SettingsAdminController {
                         Optional.ofNullable(build.getIfAvailable()).map(BuildProperties::getVersion).orElse("dev"),
                         Runtime.version().toString(),
                         SpringBootVersion.getVersion(),
-                        jdbc.sql("select current_setting('server_version')").query(String.class).single()));
+                        jdbc.sql("select current_setting('server_version')").query(String.class).single(),
+                        vips.version().orElse(null)));
     }
 
     private SettingsResponse current() {

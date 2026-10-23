@@ -43,7 +43,13 @@ export interface SystemStatus {
   solver: { configured: boolean; reachable: boolean };
   plugins: unknown[];
   imageAccess: string;
-  versions: { app: string; java: string; springBoot: string; postgres: string };
+  versions: {
+    app: string;
+    java: string;
+    springBoot: string;
+    postgres: string;
+    vips: string | null;
+  };
 }
 
 export interface AuditEntry {

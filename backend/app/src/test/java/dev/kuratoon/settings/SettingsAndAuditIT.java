@@ -2,6 +2,7 @@ package dev.kuratoon.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.kuratoon.image.RequiresVips;
 import dev.kuratoon.support.ApiTestBase;
 import dev.kuratoon.user.AppUser;
 import dev.kuratoon.user.Role;
@@ -43,6 +44,11 @@ class SettingsAndAuditIT extends ApiTestBase {
             assertThat(json).extractingPath("$.versions.java").asString().matches("\\d+.*");
             assertThat(json).extractingPath("$.versions.springBoot").asString().startsWith("4.");
             assertThat(json).extractingPath("$.versions.postgres").asString().startsWith("18.");
+            if (RequiresVips.Condition.available()) {
+                assertThat(json).extractingPath("$.versions.vips").asString().startsWith("vips-");
+            } else {
+                assertThat(json).extractingPath("$.versions.vips").isNull();
+            }
         });
     }
 
