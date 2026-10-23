@@ -33,9 +33,9 @@ test("manual metadata imports a folder that has no plugin", async ({
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText(/No metadata plugin supports/)).toBeVisible();
   await dialog.getByRole("button", { name: "Fill metadata manually" }).click();
-  await dialog.getByLabel("Title").fill("E2E One Shot");
-  await dialog.getByLabel("Type").selectOption("one-shot");
-  await dialog.getByLabel("Authors").fill("E2E Author");
+  await dialog.getByLabel("Title", { exact: true }).fill("E2E One Shot");
+  await dialog.getByLabel("Type", { exact: true }).selectOption("one-shot");
+  await dialog.getByLabel("Authors", { exact: true }).fill("E2E Author");
   await dialog.getByRole("button", { name: "Save and import" }).click();
 
   await expect(dialog.getByText("Done", { exact: true })).toBeVisible({
